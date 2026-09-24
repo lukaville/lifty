@@ -33,11 +33,10 @@
     "fetch-terrain": "node scripts/fetch-terrain.mjs",
     "fetch-surface": "node scripts/fetch-surface.mjs",
     "analyse-lift": "node scripts/analyse-lift.mjs",
-    "deploy": "wrangler deploy",
-    "deploy:dry": "wrangler deploy --dry-run",
+    "deploy": "wrangler pages deploy --branch main",
     "make-images": "node scripts/make-images.mjs",
-    "deploy:pages": "wrangler pages deploy public --project-name liftyapp --branch main",
-    "verify:autopush": "BASE_URL=https://liftyautopush.pages.dev playwright test --project=smoke"
+    "verify:autopush": "BASE_URL=https://liftyautopush.pages.dev playwright test --project=smoke",
+    "deploy:autopush": "wrangler pages deploy public --project-name liftyautopush --branch main"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

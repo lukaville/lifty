@@ -1,7 +1,7 @@
 name: deploy liftyautopush
 
 # Deploys the head of main to https://liftyautopush.pages.dev on every push.
-# (The main site, https://liftyapp.pages.dev, is deployed by hand: npm run deploy:pages.)
+# (The main site, https://liftyapp.pages.dev, is deployed by hand: npm run deploy.)
 #
 # Needs, in Settings → Secrets and variables → Actions:
 #   secret   CLOUDFLARE_API_TOKEN   — API token with "Account · Cloudflare Pages · Edit"

@@ -1,20 +1,12 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "shgc-paragliding-sites",
-  "compatibility_date": "2026-09-15",
-
-  // Static-assets-only Worker: no `main` entrypoint, Cloudflare serves ./public
-  // directly from the edge. The app is entirely client-side (terrain JSON is
-  // pre-baked, physics runs in the browser), so no server code is needed.
-  "assets": {
-    "directory": "./public",
-    // One real page at "/". Keep genuine 404s honest rather than rewriting
-    // every miss to index.html, so a missing terrain JSON fails loudly.
-    "not_found_handling": "none",
-    "html_handling": "auto-trailing-slash"
-  },
-
-  "observability": {
-    "enabled": true
-  }
+  // Cloudflare Pages project for the main site, https://liftyapp.pages.dev
+  // (npm run deploy). The app is static: public/ is uploaded as-is.
+  // The other Pages projects are deployed with an explicit --project-name:
+  //   liftyautopush  head of main (.github/workflows/deploy-autopush.yml)
+  //   lifty-preview  pull-request previews (.github/workflows/preview-deploy.yml)
+  // public/404.html keeps missing files real 404s (see docs/ARCHITECTURE.md).
+  "name": "liftyapp",
+  "pages_build_output_dir": "./public",
+  "compatibility_date": "2026-09-15"
 }

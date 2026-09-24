@@ -1,6 +1,6 @@
 # Architecture
 
-A static web app: no build step, no server code. `public/` is served as-is (locally by `scripts/serve.mjs`, in production by a static-assets-only Cloudflare Worker).
+A static web app: no build step, no server code. `public/` is served as-is (locally by `scripts/serve.mjs`, in production by Cloudflare Pages).
 
 ## Rendering
 [Three.js](https://threejs.org) r160, vendored under `public/vendor`. The scene has:
@@ -118,7 +118,7 @@ The app is static: `public/` is uploaded as-is.
 
 | Where | How | When |
 |---|---|---|
-| **https://liftyapp.pages.dev** (main site) | Cloudflare Pages: `npm run deploy:pages` | by hand, for releases |
+| **https://liftyapp.pages.dev** (main site) | Cloudflare Pages: `npm run deploy` (project from `wrangler.jsonc`) | by hand, for releases |
 | **https://liftyautopush.pages.dev** (head of `main`) | Cloudflare Pages via `.github/workflows/deploy-autopush.yml` | automatically on every push to `main`, after the unit tests pass |
 
 To check a deployment:
@@ -136,5 +136,5 @@ Without them it skips deployment with a warning.
 app and answers every missing URL with `index.html` and a `200`. A missing terrain file would
 then fail silently instead of loudly. The smoke tests check that missing files are real 404s.
 
-`wrangler.jsonc` still describes the earlier Workers deployment (`npm run deploy`), which serves
-the same `public/` directory.
+`wrangler.jsonc` is the Pages config for `liftyapp`; the other projects are deployed with an explicit
+`--project-name` (`npm run deploy:autopush` deploys the latest build by hand, if Actions is unavailable).

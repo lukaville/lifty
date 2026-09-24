@@ -68,7 +68,7 @@ async function cachedFetch(url, file) {
   if (fs.existsSync(p + ".404")) return null;
   for (let attempt = 0; ; attempt++) {
     try {
-      const res = await fetch(url, { headers: { "User-Agent": "shgc-paragliding-sites build" } });
+      const res = await fetch(url, { headers: { "User-Agent": "lifty data build (https://github.com/lukaville/lifty)" } });
       if (res.status === 404) { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p + ".404", ""); return null; }
       if (!res.ok) throw new Error(`HTTP ${res.status} ${url}`);
       const buf = Buffer.from(await res.arrayBuffer());
