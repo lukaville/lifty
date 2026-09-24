@@ -1,0 +1,40 @@
+name: preview build
+
+# Part 1 of 2 of PR previews. Runs on the PR's (untrusted) code with NO secrets
+# and a read-only token: it only packages the static site and the PR number as
+# an artifact. Part 2 (preview-deploy.yml) deploys it from a trusted context.
+# See docs/ARCHITECTURE.md → "Pull-request previews".
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+    paths: ["public/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-build-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: { persist-credentials: false }
+      - name: Package public/ and the PR number
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          mkdir -p preview
+          cp -R public preview/site
+          echo "$PR" > preview/pr-number
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: preview
+          path: preview
+          retention-days: 3
+          if-no-files-found: error

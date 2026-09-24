@@ -5,7 +5,7 @@ name: deploy liftyautopush
 #
 # Needs, in Settings → Secrets and variables → Actions:
 #   secret   CLOUDFLARE_API_TOKEN   — API token with "Account · Cloudflare Pages · Edit"
-#   variable CLOUDFLARE_ACCOUNT_ID  — the Cloudflare account ID
+#   CLOUDFLARE_ACCOUNT_ID           — the Cloudflare account ID (variable or secret)
 # Without them the deploy step is skipped with a warning.
 
 on:
@@ -22,8 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --ignore-scripts
       # a quick gate: don't publish a head whose physics/data tests fail
@@ -31,7 +31,7 @@ jobs:
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
             echo "::warning::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID not set — skipping deploy"

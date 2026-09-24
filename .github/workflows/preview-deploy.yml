@@ -1,0 +1,117 @@
+name: preview deploy
+
+# Part 2 of 2 of PR previews. Triggered when "preview build" finishes; runs in
+# the context of main, with the Cloudflare token. It must NEVER execute code
+# from the pull request: it checks out main, treats the artifact as data,
+# validates and sanitises it (scripts/preview-sanitize.mjs from main), uploads
+# it to the separate "lifty-preview" Pages project and comments the link.
+# See docs/ARCHITECTURE.md → "Pull-request previews".
+
+on:
+  workflow_run:
+    workflows: ["preview build"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read          # download the artifact of the triggering run
+  pull-requests: write   # comment the preview link
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: preview-deploy-${{ github.event.workflow_run.head_branch }}-${{ github.event.workflow_run.head_repository.full_name }}
+      cancel-in-progress: true
+    steps:
+      # trusted code only: the default branch, not the PR
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --ignore-scripts
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: preview
+          path: untrusted
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Identify and authorise the pull request
+        id: pr
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require("fs");
+            const raw = fs.readFileSync("untrusted/pr-number", "utf8").trim();
+            if (!/^\d{1,7}$/.test(raw)) throw new Error("invalid PR number in artifact");
+            const number = Number(raw);
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: number });
+            // the artifact must belong to this PR's current head: stops a forged
+            // artifact from targeting (and commenting on) a different PR
+            if (pr.head.sha !== context.payload.workflow_run.head_sha) throw new Error("artifact does not match the PR head");
+            if (pr.state !== "open") { core.setOutput("skip", "closed"); return; }
+            const fork = pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`;
+            const approved = pr.labels.some((l) => l.name === "preview");
+            core.setOutput("number", String(number));
+            core.setOutput("skip", fork && !approved ? "fork" : "");
+
+      - name: Ask a maintainer to approve the fork preview
+        if: ${{ steps.pr.outputs.skip == 'fork' }}
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env: { PR: "${{ steps.pr.outputs.number }}" }
+        with:
+          script: |
+            const body = "<!-- lifty-preview -->\n🔒 Preview not deployed: this PR comes from a fork. " +
+              "A maintainer can review the changes and add the **`preview`** label to publish a preview.";
+            const issue_number = Number(process.env.PR);
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number });
+            if (!comments.some((c) => c.body.includes("<!-- lifty-preview -->")))
+              await github.rest.issues.createComment({ ...context.repo, issue_number, body });
+
+      - name: Validate and sanitise the site
+        if: ${{ steps.pr.outputs.skip == '' }}
+        run: node scripts/preview-sanitize.mjs untrusted/site site
+
+      - name: Deploy to lifty-preview
+        id: deploy
+        if: ${{ steps.pr.outputs.skip == '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PR: ${{ steps.pr.outputs.number }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          npx wrangler pages deploy site --project-name lifty-preview --branch "pr-$PR" \
+            --commit-hash "$SHA" --commit-message "PR #$PR" --commit-dirty=true | tee deploy.log
+          url=$(grep -oE 'https://[a-z0-9]+\.lifty-preview\.pages\.dev' deploy.log | head -1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "alias=https://pr-$PR.lifty-preview.pages.dev" >> "$GITHUB_OUTPUT"
+
+      - name: Comment the preview link
+        if: ${{ steps.pr.outputs.skip == '' }}
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+          ALIAS: ${{ steps.deploy.outputs.alias }}
+          URL: ${{ steps.deploy.outputs.url }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        with:
+          script: |
+            const { PR, ALIAS, URL, SHA } = process.env;
+            const body = [
+              "<!-- lifty-preview -->",
+              `🪂 **Preview:** ${ALIAS}`,
+              "",
+              `This commit (${SHA.slice(0, 7)}): ${URL || "—"}`,
+              "",
+              "<sub>Static files only; updated on every push to this PR, deleted when it closes.</sub>",
+            ].join("\n");
+            const issue_number = Number(PR);
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number });
+            const mine = comments.find((c) => c.body.includes("<!-- lifty-preview -->"));
+            if (mine) await github.rest.issues.updateComment({ ...context.repo, comment_id: mine.id, body });
+            else await github.rest.issues.createComment({ ...context.repo, issue_number, body });
