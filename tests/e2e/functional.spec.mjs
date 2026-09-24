@@ -141,6 +141,30 @@ test.describe("controls", () => {
   });
 });
 
+test("desktop panels collapse to their header, and stay collapsed after a reload", async ({ page, app }) => {
+  await app.open();
+  const toggles = { controls: "#sheetHandle", info: "#infoToggle", legend: "#legendToggle" };
+  for (const [panel, btn] of Object.entries(toggles)) {
+    await expect(page.locator(btn)).toBeVisible();
+    await expect(page.locator(btn)).toHaveAttribute("aria-expanded", "true");
+    await page.locator(btn).click();
+    await expect(page.locator(`#${panel}`)).toHaveClass(/collapsed/);
+    await expect(page.locator(btn)).toHaveAttribute("aria-expanded", "false");
+  }
+  await expect(page.locator("#dial")).toBeHidden();
+  await expect(page.locator("#sheetSummary")).toHaveText(/Wind \d+° [NSEW]+ · \d+ mph/);
+  await expect(page.locator("#status")).toBeVisible();            // the site card keeps its status
+  await expect(page.locator("#siteChar")).toBeHidden();
+  await expect(page.locator("#legend .row").first()).toBeHidden();
+  await page.reload();
+  await page.waitForFunction(() => window.__view?.app?.viz);
+  await app.idle();
+  for (const panel of Object.keys(toggles)) await expect(page.locator(`#${panel}`)).toHaveClass(/collapsed/);
+  await page.locator("#sheetHandle").click();                     // expand again
+  await expect(page.locator("#dial")).toBeVisible();
+  await expect(page.locator("#controls")).not.toHaveClass(/collapsed/);
+});
+
 test.describe("sites", () => {
   test("every site loads with its terrain, landcover and airflow", async ({ page, app }) => {
     test.setTimeout(300_000);

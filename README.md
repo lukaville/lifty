@@ -5,11 +5,12 @@
 <p align="center">
   <b>See where the ridge lift and rotor are at a paragliding site, for any wind.</b><br />
   <a href="https://liftyapp.pages.dev">Open the app</a> ·
+  <a href="https://liftyautopush.pages.dev">Latest build</a> ·
   <a href="docs/PHYSICS.md">How it works</a> ·
   <a href="CONTRIBUTING.md">Contribute</a>
 </p>
 
-<p align="center"><img src="docs/images/desktop.png" alt="Devil's Dyke in a north-westerly: the lift band over the face, rotor behind the crest" width="860" /></p>
+<p align="center"><img src="docs/images/desktop.jpg" alt="Devil's Dyke in a north-westerly: the lift band over the face, rotor behind the crest" width="860" /></p>
 
 Pick a site and set the wind. Lifty models the airflow over the real terrain and shows:
 - the band where your wing can gain height;
@@ -17,6 +18,8 @@ Pick a site and set the wind. Lifty models the airflow over the real terrain and
 - how the site suits the current wind.
 
 It runs entirely in the browser, on desktop and phone.
+
+The [latest build](https://liftyautopush.pages.dev) is deployed automatically from `main`.
 
 > [!WARNING]
 > An educational model of steady wind over terrain, not a flying authority. It ignores thermals,
@@ -46,6 +49,6 @@ npm test
 
 Code: [MIT](LICENSE). Bundled sites: [Southern Hang Gliding Club](https://shgc.org.uk/siteguide).
 Terrain: © Environment Agency LiDAR ([OGL v3](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/)) and Mapzen Terrarium.
-Imagery: © Esri, Maxar, Earthstar Geographics (streamed, not redistributed).
+Imagery (in the app and the screenshot above): © Esri, Maxar, Earthstar Geographics and the GIS User Community.
 Map: © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
 Libraries: three.js, Leaflet.

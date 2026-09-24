@@ -196,9 +196,9 @@ Commit the generated data files. Don't commit anything from `.cache/`.
 - **Dependencies.** The app has no runtime npm dependencies; libraries are vendored under
   `public/vendor/`. Please keep it that way. Adding a dev dependency is fine if it earns its
   place.
-- **Licensing.** Don't commit satellite imagery or anything derived from it except the landcover
-  classification. The README screenshots are rendered with `?test`, which uses elevation colours
-  (`scripts/make-images.mjs`).
+- **Licensing.** Don't commit satellite imagery or anything derived from it, except the landcover
+  classification and the README screenshots (`scripts/make-images.mjs`, credited in the README).
+  Test baselines use `?test` mode, which has no imagery.
 
 ## Tests
 

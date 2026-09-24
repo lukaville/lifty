@@ -14,7 +14,9 @@ const page = await browser.newPage(process.env.MOBILE
   : { viewport: { width: 1600, height: 900 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
-page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") errors.push(`${m.type()}: ${m.text()} @ ${m.location().url}`); });
+page.on("console", (m) => {
+  if ((m.type() === "error" || m.type() === "warning") && !/GPU stall due to ReadPixels/.test(m.text())) errors.push(`${m.type()}: ${m.text()}`);
+});
 
 const q = new URLSearchParams({ site: slug, dir, mph });
 if (process.env.TEST) q.set("test", "");

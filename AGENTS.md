@@ -51,8 +51,9 @@ or `public/data/`. Run the browser tests after touching `public/js/main.js`, `ai
 4. **No runtime dependencies and no build step.** Vendor browser libraries under
    `public/vendor/`. Dev-only npm packages are fine.
 5. **Licensing.**
-   - Never commit satellite imagery, or screenshots that contain it. Use `?test` mode, which
-     has no imagery.
+   - Don't commit satellite imagery itself. The only screenshots containing it are the README
+     images from `scripts/make-images.mjs`, credited in the README. Test baselines and the
+     social preview use `?test` mode, which has no imagery.
    - The LiDAR-derived data is OGL and fine to commit.
    - Keep the attribution strings in the app and the README.
 6. **Keep docs in step.**

@@ -679,8 +679,24 @@ function setSheet(open) {
 let sheetSwiped = false;          // a swipe on the handle shouldn't also count as a tap
 handleEl.addEventListener("click", () => {
   if (sheetSwiped) { sheetSwiped = false; return; }
-  setSheet(!controlsEl.classList.contains("open"));
+  if (isPhone()) setSheet(!controlsEl.classList.contains("open"));
+  else setCollapsed(controlsEl, handleEl, !controlsEl.classList.contains("collapsed"));
 });
+
+// Desktop: the Wind, Site and Legend panels collapse to their header. The
+// state is a per-browser convenience (localStorage; failures are ignored).
+// On phones these panels use the sheet / card behaviour instead.
+function isPhone() { return matchMedia("(max-width: 760px)").matches; }
+const PANEL_KEY = "lifty:panels";
+let panelState = {};
+try { panelState = JSON.parse(localStorage.getItem(PANEL_KEY) || "{}") || {}; } catch { /* private mode */ }
+function setCollapsed(panel, button, collapsed) {
+  panel.classList.toggle("collapsed", collapsed);
+  button.setAttribute("aria-expanded", String(!collapsed));
+  if (!collapsed && panel === controlsEl) drawDial();
+  panelState[panel.id] = collapsed;
+  try { localStorage.setItem(PANEL_KEY, JSON.stringify(panelState)); } catch { /* ignore */ }
+}
 
 // Swipe gestures for the bottom sheet: drag down to close (from the handle, or
 // anywhere on the sheet once it is scrolled to the top), drag up to open.
@@ -734,6 +750,20 @@ handleEl.addEventListener("click", () => {
       if (infoEl.classList.contains("open")) { infoEl.classList.remove("open"); fitViewToPanels(); }
     }
   });
+}
+const infoToggle = document.getElementById("infoToggle");
+const legendEl = document.getElementById("legend"), legendToggle = document.getElementById("legendToggle");
+infoToggle.addEventListener("click", (e) => {
+  e.stopPropagation();                              // not the phone card's tap-to-expand
+  setCollapsed(infoEl, infoToggle, !infoEl.classList.contains("collapsed"));
+});
+legendToggle.addEventListener("click", () => setCollapsed(legendEl, legendToggle, !legendEl.classList.contains("collapsed")));
+if (!isPhone()) {
+  for (const [panel, button] of [[controlsEl, handleEl], [infoEl, infoToggle], [legendEl, legendToggle]]) {
+    const collapsed = Boolean(panelState[panel.id]);
+    panel.classList.toggle("collapsed", collapsed);
+    button.setAttribute("aria-expanded", String(!collapsed));
+  }
 }
 infoEl.addEventListener("click", (e) => {
   if (e.target.closest("a")) return;

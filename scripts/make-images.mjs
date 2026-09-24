@@ -1,7 +1,9 @@
 // Regenerate the social preview (public/og-image.png) and the README
-// screenshots (docs/images/*.png). Renders the app in ?test mode — elevation
-// colours, no satellite imagery — so every image in the repo is freely
-// redistributable (the Esri imagery is only ever streamed at runtime).
+// screenshots (docs/images/*.png).
+//   · README screenshots use the real satellite imagery; the README carries
+//     the imagery attribution.
+//   · The social preview is rendered in ?test mode (elevation colours, no
+//     imagery), because a link preview can't carry an attribution line.
 //   npm run serve   (in another terminal)
 //   node scripts/make-images.mjs [url=http://127.0.0.1:8123/]
 import fs from "node:fs";
@@ -16,16 +18,18 @@ fs.mkdirSync(path.join(ROOT, "docs/images"), { recursive: true });
 
 const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
 
-async function shot(file, { width, height, params, hideUI = false, mobile = false, before }) {
+async function shot(file, { width, height, params, hideUI = false, mobile = false, before, imagery = false }) {
   const page = await browser.newPage(mobile
     ? { viewport: { width, height }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }
     : { viewport: { width, height }, deviceScaleFactor: 1 });
-  await page.goto(`${URL_}?test&${params}`);
+  await page.goto(`${URL_}?${imagery ? "" : "test&"}${params}`);
   await page.waitForFunction(() => window.__view?.app?.viz && !window.__view.app.loading, null, { timeout: 90_000 });
   await page.evaluate(() => window.__view.whenIdle());
+  if (imagery) await page.waitForFunction(() => window.__view.app.satLoaded, null, { timeout: 60_000 });
   if (hideUI) await page.addStyleTag({ content: "#header,#controls,#info,#legend,.hint{visibility:hidden!important}" });
   if (before) await before(page);
-  await page.evaluate(() => window.__view.settle(200));
+  if (imagery) await page.waitForTimeout(4000);       // live render loop: let tracers fill in
+  else await page.evaluate(() => window.__view.settle(200));
   const buf = await page.screenshot();
   await page.close();
   if (file) fs.writeFileSync(file, buf);
@@ -44,16 +48,17 @@ const title = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" 
 await sharp(scene).composite([{ input: title }]).png({ compressionLevel: 9, palette: true, quality: 92 }).toFile(path.join(ROOT, "public/og-image.png"));
 
 // ---- README screenshots
-await shot(path.join(ROOT, "docs/images/desktop.png"), { width: 1440, height: 900, params: "site=devils-dyke&dir=326&mph=14" });
-await shot(path.join(ROOT, "docs/images/rotor.png"), { width: 1440, height: 900, params: "site=devils-dyke&dir=146&mph=20", hideUI: true });
+await shot(path.join(ROOT, "docs/images/desktop.png"), { width: 1440, height: 900, params: "site=devils-dyke&dir=326&mph=14", imagery: true });
+await shot(path.join(ROOT, "docs/images/rotor.png"), { width: 1440, height: 900, params: "site=devils-dyke&dir=146&mph=20", hideUI: true, imagery: true });
 
-// shrink the PNGs a little for the repo
+// README screenshots contain satellite photography: JPEG, not a palette PNG
+// (palette quantisation smears the panel text)
 for (const f of ["desktop", "rotor"]) {
-  const p = path.join(ROOT, `docs/images/${f}.png`);
-  const img = sharp(fs.readFileSync(p));
+  const src = path.join(ROOT, `docs/images/${f}.png`);
+  const img = sharp(fs.readFileSync(src));
   const { width } = await img.metadata();
-  await img.resize(Math.min(width, 1200)).png({ compressionLevel: 9, palette: true, quality: 90 }).toFile(p + ".tmp");
-  fs.renameSync(p + ".tmp", p);
+  await img.resize(Math.min(width, 1400)).jpeg({ quality: 86, mozjpeg: true }).toFile(path.join(ROOT, `docs/images/${f}.jpg`));
+  fs.unlinkSync(src);
 }
 await browser.close();
-console.log("wrote public/og-image.png and docs/images/{desktop,rotor}.png");
+console.log("wrote public/og-image.png and docs/images/{desktop,rotor}.jpg");

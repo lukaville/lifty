@@ -191,7 +191,40 @@
   #legend { max-width: 250px; }
 
   a { color: var(--accent); text-decoration: none; }
-  #sheetHandle, .mobile-credit, .more-hint { display: none; }
+  #sheetHandle, .mobile-credit, .more-hint, .ptoggle { display: none; }
+
+  /* ---- icons: line chevron, close cross, toggle icons ---- */
+  .chev, .xicon { width: 14px; height: 14px; flex: none; transition: transform .2s ease; }
+  .chev path, .xicon path { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .ico { width: 12px; height: 12px; flex: none; }
+  #siteButton .chev { color: var(--muted); }
+  #siteButton[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  #sitesClose { display: grid; place-items: center; }
+  #sitesClose .xicon { width: 15px; height: 15px; }
+  .ih { display: flex; align-items: center; gap: 2px; }
+  .ih h2 { margin: 0 !important; }
+  .more-hint .chev { width: 11px; height: 11px; vertical-align: -1px; }
+
+  /* ---- desktop: collapsible panels (state remembered per browser) ---- */
+  @media (min-width: 761px) {
+    #sheetHandle, .ph { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0;
+      padding: 0; color: var(--muted); font: inherit; font-size: 11.5px; cursor: pointer; text-align: left; }
+    #sheetHandle:hover, .ph:hover, .ptoggle:hover { color: var(--ink); }
+    #sheetHandle .grip { display: none; }
+    #sheetHandle #sheetSummary, .ph > span { flex: 1; text-transform: uppercase; letter-spacing: .9px; font-size: 11px; }
+    #controls:not(.collapsed) #sheetHandle { margin-bottom: 8px; }
+    #controls.collapsed > :not(#sheetHandle) { display: none; }
+    #controls.collapsed { padding: 11px 14px; }
+    .ptoggle { display: grid; place-items: center; margin-left: auto; background: none; border: 0; color: var(--muted);
+      cursor: pointer; padding: 3px; border-radius: 6px; }
+    #info.collapsed .meta, #info.collapsed .band, #info.collapsed .details { display: none; }
+    #info.collapsed .status { margin: 8px 0 0; }
+    #legend:not(.collapsed) .ph { margin-bottom: 4px; }
+    #legend.collapsed > :not(.ph) { display: none; }
+    /* chevron points up to collapse, down to expand */
+    #controls:not(.collapsed) #sheetHandle .chev, #info:not(.collapsed) #infoToggle .chev,
+    #legend:not(.collapsed) #legendToggle .chev { transform: rotate(180deg); }
+  }
   #scene { touch-action: none; }
 
   /* ---------------------------------------------------------------- phones */
@@ -235,8 +268,8 @@
     #sheetHandle .grip { position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
       width: 36px; height: 4px; border-radius: 2px; background: var(--line); }
     #sheetHandle #sheetSummary { flex: 1; text-align: left; font-weight: 600; }
-    #sheetHandle .chev { color: var(--muted); transition: transform .2s; font-size: 18px; line-height: 1; }
-    #controls.open #sheetHandle .chev { transform: rotate(180deg); }
+    #sheetHandle .chev { color: var(--muted); width: 16px; height: 16px; transform: rotate(180deg); }
+    #controls.open #sheetHandle .chev { transform: none; }
     #controls h3 { display: none; }
     #controls:not(.open) #dialWrap, #controls:not(.open) .readout, #controls:not(.open) .more { display: none; }
     #controls .field { margin-top: 6px; }
@@ -278,14 +311,14 @@
     <div class="sub">3D ridge lift &amp; rotor for paragliding sites</div>
     <button id="siteButton" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="sitesPanel" title="All sites (press /)">
       <span class="sb-text"><span id="siteButtonName">—</span><span id="siteButtonRegion"></span></span>
-      <span class="sb-chev">▾</span>
+      <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
     </button>
   </div>
 
   <div id="sitesPanel" class="panel" role="dialog" aria-label="Sites" hidden>
     <div class="sp-head">
       <h2>Sites <span id="sitesCount"></span></h2>
-      <button id="sitesClose" type="button" aria-label="Close">✕</button>
+      <button id="sitesClose" type="button" aria-label="Close"><svg class="xicon" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
     </div>
     <input id="siteSearch" type="search" placeholder="Search sites, regions, clubs… or a wind: NW" autocomplete="off" aria-label="Search sites" />
     <div class="sp-bar">
@@ -303,8 +336,7 @@
   </div>
 
   <div id="controls" class="panel">
-    <button id="sheetHandle" type="button" aria-expanded="false"><span class="grip"></span><span id="sheetSummary">Wind</span><span class="chev">▴</span></button>
-    <h3>Wind</h3>
+    <button id="sheetHandle" type="button" aria-expanded="false" aria-controls="controls" title="Show / hide the wind controls"><span class="grip"></span><span id="sheetSummary">Wind</span><svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
     <div id="dialWrap"><canvas id="dial" width="200" height="200"></canvas></div>
     <div class="readout">
       <div><span class="big" id="dirDeg">–</span><span class="lab" id="dirCard"></span></div>
@@ -327,14 +359,14 @@
       <label><input type="checkbox" id="tBand" checked><span class="swatch" style="background:var(--lift)"></span> Lift band</label>
       <label><input type="checkbox" id="tFlow" checked><span class="swatch" style="background:#e9f1ff"></span> Air flow</label>
       <label><input type="checkbox" id="tRotor" checked><span class="swatch" style="background:var(--rotor)"></span> Rotor</label>
-      <label><input type="checkbox" id="tVeg" checked>🌳 Trees</label>
-      <label><input type="checkbox" id="tWind" checked>➤ Wind arrow</label>
+      <label><input type="checkbox" id="tVeg" checked><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="6.5" r="4.5" fill="#4f9a55"/><path d="M8 10.5v4" stroke="#8a6a48" stroke-width="1.8" stroke-linecap="round"/></svg> Trees</label>
+      <label><input type="checkbox" id="tWind" checked><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h10M8.5 4.5L12 8l-3.5 3.5" fill="none" stroke="#dce9f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Wind arrow</label>
     </div>
     </div>
   </div>
 
   <div id="info" class="panel">
-    <h2 id="siteName">—</h2><button id="favStar" type="button" aria-pressed="false" aria-label="Add to favourites">☆</button>
+    <div class="ih"><h2 id="siteName">—</h2><button id="favStar" type="button" aria-pressed="false" aria-label="Add to favourites">☆</button><button id="infoToggle" class="ptoggle" type="button" aria-expanded="true" aria-label="Show / hide site details"><svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button></div>
     <div class="meta" id="siteMeta"></div>
     <div class="status" id="status"><span class="dot"></span><span class="txt"></span></div>
     <div class="band" id="bandInfo"></div>
@@ -344,10 +376,11 @@
       <div class="source" id="siteSource"></div>
       <div class="mobile-credit"><a href="https://github.com/lukaville/lifty" target="_blank" rel="noopener">Lifty on GitHub</a> · <span id="creditsMobile"></span></div>
     </div>
-    <div class="more-hint">tap for site details ▾</div>
+    <div class="more-hint">Site details <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></div>
   </div>
 
   <div id="legend" class="panel">
+    <button id="legendToggle" class="ph" type="button" aria-expanded="true"><span>Legend</span><svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
     <div class="row"><span class="bar" style="background:linear-gradient(90deg,#7b3fe0,#e3d2ff)"></span> Lift band (usable climb; contours every 25 ft, bold every 100 ft)</div>
     <div class="row"><span class="bar" style="background:linear-gradient(90deg,#c79cff,#9a5cff)"></span> Air in usable climb</div>
     <div class="row"><span class="bar" style="background:linear-gradient(90deg,#e8eef6,#fff)"></span> Air flow (no lift for your wing)</div>
