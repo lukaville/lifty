@@ -1,0 +1,22 @@
+name: Bug or "the model looks wrong"
+description: Something broken, or the lift / rotor doesn't match reality
+labels: ["bug"]
+body:
+  - type: input
+    id: link
+    attributes:
+      label: Link to the view
+      description: Copy the URL from the app — it includes the site (add &dir=…&mph=… for the wind)
+      placeholder: "https://…/?site=devils-dyke&dir=326&mph=14"
+  - type: textarea
+    id: what
+    attributes: { label: What you see, and what you expected }
+    validations: { required: true }
+  - type: textarea
+    id: reality
+    attributes:
+      label: "For 'the model looks wrong': what happens when you actually fly there?"
+      description: Where the lift really is, where the rotor is, heights you get — local knowledge is gold.
+  - type: input
+    id: device
+    attributes: { label: Browser and device, placeholder: "Safari, iPhone 15" }

@@ -1,0 +1,42 @@
+name: New site
+description: Propose a paragliding / hang gliding site to add
+title: "New site: "
+labels: ["new site"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Fill in what you know. Someone can build the data for you (see CONTRIBUTING.md → Adding a site if you'd like to do it yourself).
+        Please only share information you're allowed to, and link the club guide it comes from.
+  - type: input
+    id: name
+    attributes: { label: Site name, placeholder: "Rhossili Down" }
+    validations: { required: true }
+  - type: input
+    id: region
+    attributes: { label: Region and country, placeholder: "Gower, Wales, GB" }
+    validations: { required: true }
+  - type: input
+    id: takeoff
+    attributes: { label: Take-off position (lat, lon), description: "Decimal degrees, e.g. from a map app", placeholder: "51.5736, -4.2863" }
+    validations: { required: true }
+  - type: input
+    id: heights
+    attributes: { label: "Take-off height (ft or m above sea level) and height of the hill above its foot", placeholder: "600 ft, hill ~550 ft" }
+  - type: input
+    id: wind
+    attributes: { label: Working wind directions (the wind blows FROM), placeholder: "SW – NW" }
+    validations: { required: true }
+  - type: input
+    id: strength
+    attributes: { label: Recommended wind strength, placeholder: "10–22 mph on take-off" }
+  - type: textarea
+    id: character
+    attributes: { label: What the site is like }
+  - type: textarea
+    id: hazards
+    attributes: { label: Hazards }
+  - type: input
+    id: source
+    attributes: { label: Club / site guide (link), placeholder: "https://…" }
+    validations: { required: true }

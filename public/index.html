@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Lifty — 3D ridge lift &amp; rotor for paragliding sites</title>
+<meta name="description" content="See where the ridge lift and rotor are at paragliding and hang gliding sites, for any wind. Real LiDAR terrain, trees and buildings, and a physics model of the airflow. Open source." />
+<meta name="application-name" content="Lifty" />
+<meta name="author" content="Lifty contributors" />
+<meta name="keywords" content="paragliding, hang gliding, ridge soaring, ridge lift, rotor, turbulence, wind, airflow, LiDAR, South Downs" />
+<meta name="theme-color" content="#0b1016" />
+<meta name="color-scheme" content="dark" />
+<meta name="format-detection" content="telephone=no" />
+<!-- canonical and social URLs: change these if you deploy a fork elsewhere -->
+<link rel="canonical" href="https://shgc-paragliding-sites.nick-4f5.workers.dev/" />
+
+<!-- icons & installable web app -->
+<link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+<link rel="icon" href="./icons/icon-32.png" type="image/png" sizes="32x32" />
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Lifty" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+<!-- link previews (Open Graph / Twitter) -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Lifty" />
+<meta property="og:title" content="Lifty" />
+<meta property="og:description" content="3D ridge lift and rotor for paragliding sites, for any wind: LiDAR terrain, trees and buildings, and a physics model of the airflow." />
+<meta property="og:url" content="https://shgc-paragliding-sites.nick-4f5.workers.dev/" />
+<meta property="og:image" content="https://shgc-paragliding-sites.nick-4f5.workers.dev/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="A 3D model of Devil's Dyke with the violet ridge-lift band over its north-west face" />
+<meta property="og:locale" content="en_GB" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Lifty" />
+<meta name="twitter:description" content="3D ridge lift and rotor for paragliding sites, for any wind." />
+<meta name="twitter:image" content="https://shgc-paragliding-sites.nick-4f5.workers.dev/og-image.png" />
+<meta name="twitter:image:alt" content="A 3D model of Devil's Dyke with the violet ridge-lift band over its north-west face" />
+
+<!-- start fetching the data the first view needs -->
+<link rel="modulepreload" href="./vendor/three.module.js" />
+<link rel="modulepreload" href="./js/main.js" />
+<link rel="preload" href="./data/sites.json" as="fetch" crossorigin />
+<link rel="preconnect" href="https://clarity.maptiles.arcgis.com" crossorigin />
+<style>
+  :root {
+    --bg: #0b1016;
+    --panel: rgba(16, 22, 30, 0.86);
+    --panel-solid: #141b24;
+    --line: #26313d;
+    --ink: #e8edf2;
+    --muted: #9fb0c0;
+    --accent: #56b6ff;
+    --lift: #a35cff;
+    --rotor: #ff5a4d;
+    --good: #46e08a;
+    --warn: #ffb23e;
+    --bad: #ff5a4d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); }
+  body {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  #scene { position: fixed; inset: 0; }
+  #loading {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px; background: var(--bg); z-index: 50; transition: opacity .5s;
+    color: var(--muted); font-size: 14px;
+  }
+  .spinner {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 3px solid var(--line); border-top-color: var(--accent);
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .panel {
+    position: fixed; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  }
+
+  /* ---- header / site picker ---- */
+  #header { top: 14px; left: 14px; padding: 12px 14px; max-width: 300px; }
+  #header h1 { margin: 0 0 2px; font-size: 15px; letter-spacing: .2px; }
+  #header .sub { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+  #header { min-width: 260px; }
+  #siteButton { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
+    background: rgba(86,182,255,.12); border: 1px solid rgba(86,182,255,.45); color: var(--ink);
+    border-radius: 9px; padding: 8px 10px; font: inherit; }
+  #siteButton:hover { background: rgba(86,182,255,.2); }
+  #siteButton .sb-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #siteButtonName { font-weight: 600; font-size: 13.5px; }
+  #siteButtonRegion { font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #siteButton .sb-chev { color: var(--muted); }
+
+  /* ---- sites panel: search, filters, list / map ---- */
+  #sitesPanel { top: 14px; left: 14px; width: 400px; max-height: calc(100vh - 28px); z-index: 30;
+    display: flex; flex-direction: column; padding: 12px; gap: 9px; }
+  #sitesPanel[hidden] { display: none; }
+  .sp-head { display: flex; justify-content: space-between; align-items: center; }
+  .sp-head h2 { margin: 0; font-size: 14px; }
+  #sitesCount { color: var(--muted); font-weight: 400; font-size: 11px; margin-left: 6px; }
+  #sitesClose { background: none; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 6px; }
+  #siteSearch { width: 100%; background: var(--panel-solid); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 10px; font: inherit; font-size: 13px; }
+  #siteSearch:focus { outline: none; border-color: var(--accent); }
+  .sp-bar { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .chips, .views { display: flex; gap: 5px; }
+  .chips button, .views button { background: rgba(255,255,255,.04); border: 1px solid var(--line); color: var(--muted);
+    border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 11.5px; cursor: pointer; }
+  .chips button[aria-pressed="true"], .views button[aria-pressed="true"] { color: var(--ink); border-color: var(--accent); background: rgba(86,182,255,.16); }
+  #siteResults { list-style: none; margin: 0; padding: 0; overflow-y: auto; min-height: 120px; }
+  #siteResults[hidden] { display: none; }
+  .site-row { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-radius: 8px; cursor: pointer; }
+  .site-row:hover, .site-row.kb { background: rgba(86,182,255,.10); }
+  .site-row.current { background: rgba(86,182,255,.18); box-shadow: inset 2px 0 0 var(--accent); }
+  .site-row .rose { width: 26px; height: 26px; flex: none; color: var(--ink); }
+  .site-row .meta { flex: 1; min-width: 0; }
+  .site-row .nm { font-size: 13px; font-weight: 600; }
+  .site-row .rg { font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .site-row .ww { font-size: 10.5px; color: var(--muted); text-align: right; white-space: nowrap; }
+  .site-row .ww .on { color: var(--good); } .site-row .ww .off { color: #7d8e9e; }
+  .star, #favStar { background: none; border: 0; color: #ffd166; font-size: 17px; cursor: pointer; padding: 2px 4px; line-height: 1; }
+  .star[aria-pressed="false"], #favStar[aria-pressed="false"] { color: #6b7a88; }
+  .empty { color: var(--muted); font-size: 12px; padding: 14px 6px; }
+  #siteMap { height: 420px; border-radius: 9px; overflow: hidden; background: #1b242e; }
+  #siteMap[hidden] { display: none; }
+  .leaflet-container { font: inherit; }
+  #info .source { margin-top: 7px; font-size: 10.5px; color: var(--muted); }
+
+  /* ---- info panel ---- */
+  #info { bottom: 14px; left: 14px; padding: 13px 15px; max-width: 320px; font-size: 12.5px; line-height: 1.5; }
+  #info h2 { margin: 0 0 2px; font-size: 14px; display: inline; }
+  #favStar { vertical-align: -1px; margin-left: 2px; }
+  #info .meta { display: block; }
+  #info .meta { color: var(--muted); font-size: 11px; margin-bottom: 8px; }
+  #info .status {
+    display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: 12px;
+    padding: 5px 10px; border-radius: 999px; margin-bottom: 9px;
+  }
+  #info .status .dot { width: 9px; height: 9px; border-radius: 50%; }
+  #info .band { font-size: 11.5px; color: var(--muted); margin: -3px 0 9px; line-height: 1.5; }
+  #info .band b { color: var(--lift); font-weight: 600; }
+  #info .band .dim, #legend .note em { color: #7d8e9e; font-style: normal; }
+  #info .char { color: var(--ink); }
+  select {
+    width: 100%; background: var(--panel-solid); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 7px; padding: 5px 7px; font-size: 12px;
+    font-family: inherit; cursor: pointer;
+  }
+  #info .hazard { color: var(--warn); margin-top: 7px; font-size: 11.5px; line-height: 1.45; }
+  #info .hazard b { color: #ffd08a; }
+
+  /* ---- wind controls ---- */
+  #controls { top: 14px; right: 14px; padding: 14px; width: 236px; }
+  #controls h3 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  #dialWrap { display: flex; justify-content: center; }
+  #dial { touch-action: none; cursor: grab; width: 150px; height: 150px; }
+  #dial:active { cursor: grabbing; }
+  .readout { display: flex; justify-content: space-between; align-items: baseline; margin: 10px 2px 2px; }
+  .readout .big { font-size: 22px; font-weight: 700; }
+  .readout .lab { color: var(--muted); font-size: 11px; }
+  .field { margin-top: 12px; }
+  .field label { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-bottom: 5px; }
+  .field label b { color: var(--ink); font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .toggles { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+  .toggles label { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--ink); cursor: pointer; }
+  .toggles input { accent-color: var(--accent); }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  /* ---- legend ---- */
+  #legend { bottom: 14px; right: 14px; padding: 10px 13px; font-size: 11.5px; color: var(--muted); max-width: 230px; }
+  #legend .row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  #legend .bar { width: 40px; height: 9px; border-radius: 3px; }
+  #legend .note { margin-top: 7px; font-size: 10.5px; line-height: 1.45; opacity: .85; }
+  /* short screens: keep the controls clear of the legend */
+  @media (max-height: 980px) {
+    #legend .note { display: none; }
+    #controls { padding: 11px 14px; }
+    .field { margin-top: 9px; }
+  }
+  #legend .credits { margin-top: 6px; font-size: 9px; line-height: 1.35; opacity: .6; }
+  #legend { max-width: 250px; }
+
+  a { color: var(--accent); text-decoration: none; }
+  #sheetHandle, .mobile-credit, .more-hint { display: none; }
+  #scene { touch-action: none; }
+
+  /* ---------------------------------------------------------------- phones */
+  @media (max-width: 760px) {
+    .panel { border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+    #legend, .hint { display: none; }
+
+    /* top bar: title + horizontally scrolling site chips */
+    #header { top: max(8px, env(safe-area-inset-top)); left: 8px; right: 8px; max-width: none; padding: 8px 10px 6px; }
+    #header h1 { font-size: 13.5px; }
+    #header .sub { display: none; }
+    #header { min-width: 0; }
+    #header h1 { display: none; }
+    #siteButton { padding: 8px 10px; }
+    #sitesPanel { inset: 0; width: auto; max-height: none; border-radius: 0; z-index: 60;
+      padding: calc(10px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom)); }
+    #siteSearch { font-size: 16px; }                      /* no iOS zoom-on-focus */
+    .site-row { padding: 11px 6px; }
+    #siteMap { flex: 1; height: auto; min-height: 300px; }
+
+    /* compact info card under the top bar; tap to expand details */
+    #info { top: calc(max(8px, env(safe-area-inset-top)) + 64px); bottom: auto; left: 8px; right: 8px; max-width: none;
+      padding: 9px 12px; font-size: 12px; cursor: pointer; }
+    #info h2 { font-size: 13px; display: inline; margin-right: 6px; }
+    #info .meta { display: block; font-size: 10.5px; margin-top: 2px; }
+    #info .status { display: flex; width: fit-content; margin: 6px 0 5px; padding: 4px 9px; font-size: 11.5px; }
+    #info .band { margin: 0; font-size: 11px; }
+    #info .details { display: none; margin-top: 7px; max-height: 38vh; overflow-y: auto; }
+    #info.open .details { display: block; }
+    #info .more-hint { display: block; margin-top: 4px; font-size: 10px; color: var(--muted); }
+    #info.open .more-hint { display: none; }
+    .mobile-credit { display: block; margin-top: 8px; font-size: 10px; color: var(--muted); }
+
+    /* bottom sheet for the wind controls */
+    #controls { top: auto; right: 0; left: 0; bottom: 0; width: auto; border-radius: 16px 16px 0 0;
+      padding: 4px 14px calc(10px + env(safe-area-inset-bottom)); max-height: 72vh; overflow-y: auto;
+      transition: transform .22s ease; overscroll-behavior: contain; }
+    #sheetHandle { touch-action: none; }
+    #sheetHandle { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0;
+      color: var(--ink); font: inherit; font-size: 13px; padding: 10px 2px 6px; cursor: pointer; position: relative; }
+    #sheetHandle .grip { position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
+      width: 36px; height: 4px; border-radius: 2px; background: var(--line); }
+    #sheetHandle #sheetSummary { flex: 1; text-align: left; font-weight: 600; }
+    #sheetHandle .chev { color: var(--muted); transition: transform .2s; font-size: 18px; line-height: 1; }
+    #controls.open #sheetHandle .chev { transform: rotate(180deg); }
+    #controls h3 { display: none; }
+    #controls:not(.open) #dialWrap, #controls:not(.open) .readout, #controls:not(.open) .more { display: none; }
+    #controls .field { margin-top: 6px; }
+    #dial { width: 116px; height: 116px; }
+    /* dial beside the readout to keep the open sheet short */
+    #controls.open #dialWrap { float: left; margin: 0 14px 4px 0; }
+    #controls.open .readout { flex-direction: column; align-items: flex-start; gap: 6px; margin: 16px 0 0; }
+    #controls.open .readout > div { text-align: left !important; }
+    #controls .field:first-of-type { clear: both; }
+    #controls .field { clear: both; }
+    input[type=range] { height: 28px; }                 /* bigger touch target */
+    .toggles label { font-size: 12.5px; padding: 4px 0; }
+    select { padding: 8px; font-size: 13px; }
+  }
+  .hint { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; color: var(--muted); background: var(--panel); border: 1px solid var(--line);
+    padding: 6px 12px; border-radius: 999px; pointer-events: none; }
+  .hint a { pointer-events: auto; }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/controls/OrbitControls.js": "./vendor/controls/OrbitControls.js"
+  }
+}
+</script>
+</head>
+<body>
+  <canvas id="scene" role="img" aria-label="3D view of the site with the modelled lift band, rotor and air flow"></canvas>
+  <noscript><div style="padding:24px;font:15px system-ui;color:#e8edf2">Lifty needs JavaScript and WebGL.</div></noscript>
+
+  <div id="loading"><div class="spinner"></div><div id="loadingText">Loading terrain…</div></div>
+
+  <div id="header" class="panel">
+    <h1>Lifty</h1>
+    <div class="sub">3D ridge lift &amp; rotor for paragliding sites</div>
+    <button id="siteButton" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="sitesPanel" title="All sites (press /)">
+      <span class="sb-text"><span id="siteButtonName">—</span><span id="siteButtonRegion"></span></span>
+      <span class="sb-chev">▾</span>
+    </button>
+  </div>
+
+  <div id="sitesPanel" class="panel" role="dialog" aria-label="Sites" hidden>
+    <div class="sp-head">
+      <h2>Sites <span id="sitesCount"></span></h2>
+      <button id="sitesClose" type="button" aria-label="Close">✕</button>
+    </div>
+    <input id="siteSearch" type="search" placeholder="Search sites, regions, clubs… or a wind: NW" autocomplete="off" aria-label="Search sites" />
+    <div class="sp-bar">
+      <div class="chips" role="group" aria-label="Filter">
+        <button type="button" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" data-filter="fav" aria-pressed="false">★ Favourites</button>
+      </div>
+      <div class="views" role="group" aria-label="View">
+        <button type="button" data-view="list" aria-pressed="true">List</button>
+        <button type="button" data-view="map" aria-pressed="false">Map</button>
+      </div>
+    </div>
+    <ul id="siteResults" role="listbox" aria-label="Sites"></ul>
+    <div id="siteMap" hidden></div>
+  </div>
+
+  <div id="controls" class="panel">
+    <button id="sheetHandle" type="button" aria-expanded="false"><span class="grip"></span><span id="sheetSummary">Wind</span><span class="chev">▴</span></button>
+    <h3>Wind</h3>
+    <div id="dialWrap"><canvas id="dial" width="200" height="200"></canvas></div>
+    <div class="readout">
+      <div><span class="big" id="dirDeg">–</span><span class="lab" id="dirCard"></span></div>
+      <div style="text-align:right"><span class="big" id="spdVal">–</span> <span class="lab">mph</span><br><span class="lab" id="spdKmh"></span></div>
+    </div>
+    <div class="field">
+      <label title="Forecast-style wind at 10 m over open ground upwind. The hill speeds it up — see the take-off wind readout.">Forecast wind (10 m) <b><span id="spdVal2">14</span> mph</b></label>
+      <input type="range" id="speed" min="0" max="35" step="1" value="14" />
+    </div>
+    <div class="more">
+    <div class="field">
+      <label title="Lift is shown only where your wing would climb at least this fast. 0 = break-even in perfectly smooth air; real, gusty air near a hill needs a margin to actually gain height.">Show lift above <b><span id="minLiftVal">1.0</span> m/s climb</b></label>
+      <input type="range" id="minLift" min="0" max="5" step="0.1" value="1" />
+    </div>
+    <div class="field">
+      <label>Wing <b id="wingSink"></b></label>
+      <select id="wing"></select>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="tBand" checked><span class="swatch" style="background:var(--lift)"></span> Lift band</label>
+      <label><input type="checkbox" id="tFlow" checked><span class="swatch" style="background:#e9f1ff"></span> Air flow</label>
+      <label><input type="checkbox" id="tRotor" checked><span class="swatch" style="background:var(--rotor)"></span> Rotor</label>
+      <label><input type="checkbox" id="tVeg" checked>🌳 Trees</label>
+      <label><input type="checkbox" id="tWind" checked>➤ Wind arrow</label>
+    </div>
+    </div>
+  </div>
+
+  <div id="info" class="panel">
+    <h2 id="siteName">—</h2><button id="favStar" type="button" aria-pressed="false" aria-label="Add to favourites">☆</button>
+    <div class="meta" id="siteMeta"></div>
+    <div class="status" id="status"><span class="dot"></span><span class="txt"></span></div>
+    <div class="band" id="bandInfo"></div>
+    <div class="details">
+      <div class="char" id="siteChar"></div>
+      <div class="hazard" id="siteHazard"></div>
+      <div class="source" id="siteSource"></div>
+      <div class="mobile-credit"><a href="https://github.com/lukaville/lifty" target="_blank" rel="noopener">Lifty on GitHub</a> · <span id="creditsMobile"></span></div>
+    </div>
+    <div class="more-hint">tap for site details ▾</div>
+  </div>
+
+  <div id="legend" class="panel">
+    <div class="row"><span class="bar" style="background:linear-gradient(90deg,#7b3fe0,#e3d2ff)"></span> Lift band (usable climb; contours every 25 ft, bold every 100 ft)</div>
+    <div class="row"><span class="bar" style="background:linear-gradient(90deg,#c79cff,#9a5cff)"></span> Air in usable climb</div>
+    <div class="row"><span class="bar" style="background:linear-gradient(90deg,#e8eef6,#fff)"></span> Air flow (no lift for your wing)</div>
+    <div class="row"><span class="bar" style="background:linear-gradient(90deg,#ffad1f,#ff5220)"></span> Rotor · tree &amp; building wakes</div>
+    <div class="note"><b>Streaks are real air parcels</b> carried by the modelled wind, coloured by what your
+      wing would feel: net climb = updraught minus your sink at the speed you must fly to hold position.
+      Trees, hedges and buildings come from 1 m LiDAR and satellite imagery and shed their own wakes.
+      Thermals and sea breeze are not modelled. Educational only.</div>
+    <div class="credits" id="credits"></div></div>
+
+  <div class="hint">drag to orbit · scroll to zoom · drag the dial to set wind direction · <a href="https://github.com/lukaville/lifty" target="_blank" rel="noopener">Lifty on GitHub</a></div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

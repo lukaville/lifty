@@ -1,0 +1,213 @@
+{
+ "schema": "Each site: slug (data file names), name, region, country, club/clubShort/source (whose site guide the metadata comes from), lat/lon of take-off (WGS84), takeoffAmsl_ft, relief_ft, windFrom [from°, to°] working arc (clockwise), strengthBand_mph, workingWind, character, hazards. Terrain/landcover per slug under data/terrain and data/landcover (scripts/fetch-terrain.mjs, scripts/fetch-surface.mjs).",
+ "sites": [
+  {
+   "slug": "devils-dyke",
+   "name": "Devil's Dyke",
+   "region": "South Downs, West Sussex",
+   "country": "GB",
+   "club": "Southern Hang Gliding Club",
+   "clubShort": "SHGC",
+   "source": "https://shgc.org.uk/siteguide",
+   "lat": 50.88572,
+   "lon": -0.21278,
+   "gridRef": "TQ 258 111",
+   "takeoffAmsl_ft": 700,
+   "relief_ft": 500,
+   "windFrom": [
+    292.5,
+    360
+   ],
+   "aspect": 330,
+   "workingWind": "WNW – N",
+   "strengthBand_mph": [
+    10,
+    22
+   ],
+   "character": "Half-mile NW ridge leading to a north-facing bowl with a NE spur, then a 2-mile north ridge toward Truleigh Hill. One of the classic South Downs sites.",
+   "hazards": "Sea-breeze can encroach from behind the hill causing abrupt, severe turbulence. In NNE the take-off sits in wind-shadow with rotor at the rear of the paddock. Westerlies give very turbulent air off the bowls; the valley behind take-off holds rotor and sink."
+  },
+  {
+   "slug": "firle",
+   "name": "Firle",
+   "region": "South Downs, East Sussex",
+   "country": "GB",
+   "club": "Southern Hang Gliding Club",
+   "clubShort": "SHGC",
+   "source": "https://shgc.org.uk/siteguide",
+   "lat": 50.83478,
+   "lon": 0.08719,
+   "gridRef": "TQ 468 059",
+   "takeoffAmsl_ft": 540,
+   "relief_ft": 320,
+   "windFrom": [
+    315,
+    22.5
+   ],
+   "aspect": 355,
+   "workingWind": "NW – NNE",
+   "strengthBand_mph": [
+    9,
+    20
+   ],
+   "character": "North-facing bowl giving on to the northerly Firle ridge. A friendly, popular training-friendly site in the right conditions.",
+   "hazards": "Trees on the slope generate turbulence and dangerous sink near the fence. Steep wind gradient on take-off. Bowl geometry creates a venturi — wind can appear more aligned than it is, with serious rotor low in the bowl when off-axis, especially strong NE."
+  },
+  {
+   "slug": "mount-caburn",
+   "name": "Mount Caburn",
+   "region": "South Downs, East Sussex",
+   "country": "GB",
+   "club": "Southern Hang Gliding Club",
+   "clubShort": "SHGC",
+   "source": "https://shgc.org.uk/siteguide",
+   "lat": 50.86153,
+   "lon": 0.05097,
+   "gridRef": "TQ 443 088",
+   "takeoffAmsl_ft": 500,
+   "relief_ft": 420,
+   "windFrom": [
+    180,
+    225
+   ],
+   "aspect": 202,
+   "workingWind": "S – SW",
+   "strengthBand_mph": [
+    10,
+    20
+   ],
+   "character": "South-west facing dome with a bowl beyond, standing free 2 km SE of Lewes. A distinctive isolated hill with a small but reliable lift band.",
+   "hazards": "Often roughened by the sea breeze. Severe rotor behind the western ridge — carry ample height. Wind accelerates around the south/east sides; venturi in the bowl can produce 180° shifts over the landing field."
+  },
+  {
+   "slug": "beachy-head",
+   "name": "Beachy Head",
+   "region": "South Downs, East Sussex",
+   "country": "GB",
+   "club": "Southern Hang Gliding Club",
+   "clubShort": "SHGC",
+   "source": "https://shgc.org.uk/siteguide",
+   "lat": 50.73994,
+   "lon": 0.25314,
+   "gridRef": "TV 591 958",
+   "takeoffAmsl_ft": 530,
+   "relief_ft": 370,
+   "windFrom": [
+    112.5,
+    180
+   ],
+   "aspect": 150,
+   "workingWind": "ESE – S",
+   "strengthBand_mph": [
+    10,
+    20
+   ],
+   "character": "South-east facing bowl with additional SSE-facing chalk cliffs above the sea, 2 miles SW of Eastbourne.",
+   "hazards": "Serious turbulence when lapse rates are poor, especially in summer. Dangerous rotor behind the cliffs in southerly winds. No safe bottom landing below the main cliffs — slippery rocks and limited beach."
+  },
+  {
+   "slug": "ditchling",
+   "name": "Ditchling Beacon",
+   "region": "South Downs, East Sussex",
+   "country": "GB",
+   "club": "Southern Hang Gliding Club",
+   "clubShort": "SHGC",
+   "source": "https://shgc.org.uk/siteguide",
+   "lat": 50.90289,
+   "lon": -0.12019,
+   "gridRef": "TQ 325 132",
+   "takeoffAmsl_ft": 720,
+   "relief_ft": 550,
+   "windFrom": [
+    337.5,
+    360
+   ],
+   "aspect": 350,
+   "workingWind": "N – NNW",
+   "strengthBand_mph": [
+    10,
+    22
+   ],
+   "character": "North-facing bowl with ridges running 7 km east to Offham and 2 km west to the Clayton windmills. One of the highest points on the South Downs.",
+   "hazards": "Trees on the lower slopes create a steep wind gradient with lee turbulence. Strong winds produce rotor behind the trig point; NE winds can give site-wide rotor on the eastern side."
+  },
+  {
+   "slug": "bo-peep",
+   "name": "Bo Peep",
+   "region": "South Downs, East Sussex",
+   "country": "GB",
+   "club": "Southern Hang Gliding Club",
+   "clubShort": "SHGC",
+   "source": "https://shgc.org.uk/siteguide",
+   "lat": 50.82044,
+   "lon": 0.12867,
+   "gridRef": "TQ 500 043",
+   "takeoffAmsl_ft": 600,
+   "relief_ft": 300,
+   "windFrom": [
+    22.5,
+    67.5
+   ],
+   "aspect": 45,
+   "workingWind": "NNE – ENE",
+   "strengthBand_mph": [
+    9,
+    20
+   ],
+   "character": "North-east ridge system with multiple bowls running west to a 700 ft trig point, and a northerly ridge past Firle. Superb soaring potential along the extended ridge.",
+   "hazards": "Trees in front of the Bostal Down launch give severe turbulence in strong winds. Marked venturi in the quarry distorts wind assessment; rotor behind the quarry in NNE."
+  },
+  {
+   "slug": "high-and-over",
+   "name": "High & Over",
+   "region": "South Downs, East Sussex",
+   "country": "GB",
+   "club": "Southern Hang Gliding Club",
+   "clubShort": "SHGC",
+   "source": "https://shgc.org.uk/siteguide",
+   "lat": 50.78794,
+   "lon": 0.14203,
+   "gridRef": "TQ 510 011",
+   "takeoffAmsl_ft": 250,
+   "relief_ft": 220,
+   "windFrom": [
+    67.5,
+    135
+   ],
+   "aspect": 90,
+   "workingWind": "ENE – SE",
+   "strengthBand_mph": [
+    9,
+    18
+   ],
+   "character": "A small, steep, tree-covered bowl facing due east over the Cuckmere river valley, south of Alfriston.",
+   "hazards": "A fully recirculating rotor can set up over the car park. Fast changes in wind direction and strength with gusty thermals. Often sink over the trees in the bowl. Not a site for inexperienced pilots."
+  },
+  {
+   "slug": "newhaven-cliffs",
+   "name": "Newhaven Cliffs",
+   "region": "South Downs, East Sussex",
+   "country": "GB",
+   "club": "Southern Hang Gliding Club",
+   "clubShort": "SHGC",
+   "source": "https://shgc.org.uk/siteguide",
+   "lat": 50.78206,
+   "lon": 0.05014,
+   "gridRef": "TQ 446 000",
+   "takeoffAmsl_ft": 180,
+   "relief_ft": 160,
+   "windFrom": [
+    157.5,
+    202.5
+   ],
+   "aspect": 180,
+   "workingWind": "SSE – SSW",
+   "strengthBand_mph": [
+    10,
+    20
+   ],
+   "character": "South-facing and SSW chalk sea-cliff runs. Coastal soaring where lift depends on the air–sea temperature differential as much as wind strength.",
+   "hazards": "Rotor behind the cliff for almost its full extent where the land slopes away. Venturi and wind-shadow at the point in easterly components. The airflow at Brighton Marina is very turbulent — stay clear of the eastern arm."
+  }
+ ]
+}

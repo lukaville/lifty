@@ -1,0 +1,4 @@
+# vendored libraries are kept byte-for-byte as upstream ships them
+public/vendor/** -text
+# images and golden baselines are binary
+*.png binary
