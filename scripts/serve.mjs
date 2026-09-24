@@ -1,6 +1,6 @@
 // Minimal static file server for public/ (no dependencies).
 //   node scripts/serve.mjs [port=8123] [host=127.0.0.1]
-// Mirrors the production Worker config: real 404s (no SPA fallback), gzip for
+// Mirrors production (Cloudflare Pages with public/404.html): real 404s, gzip for
 // text assets, and the same MIME types.
 
 import http from "node:http";
