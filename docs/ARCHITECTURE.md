@@ -114,16 +114,27 @@ lifty/
 
 ## Deploying
 
-Deployed as a **static-assets-only Cloudflare Worker** (`wrangler.jsonc`). There is no `main`
-entrypoint: the terrain is pre-baked and all physics runs in the browser, so Cloudflare serves
-`public/` straight from the edge.
+The app is static: `public/` is uploaded as-is.
+
+| Where | How | When |
+|---|---|---|
+| **https://liftyapp.pages.dev** (main site) | Cloudflare Pages: `npm run deploy:pages` | by hand, for releases |
+| **https://liftyautopush.pages.dev** (head of `main`) | Cloudflare Pages via `.github/workflows/deploy-autopush.yml` | automatically on every push to `main`, after the unit tests pass |
+
+To check a deployment:
 
 ```bash
-npm run deploy           # wrangler deploy
-npm run deploy:dry       # validate without publishing
-npm run verify:live      # Playwright smoke test against the live URL
+npm run verify:live        # smoke tests against liftyapp.pages.dev
+npm run verify:autopush    # … against liftyautopush.pages.dev
 ```
 
-`not_found_handling` is set to `"none"` rather than `"single-page-application"`. There is only
-one real page, and SPA rewriting would return `index.html` with a `200` for a missing terrain
-file, masking a real failure as a silently blank render. The smoke test checks this.
+The auto-deploy needs a `CLOUDFLARE_API_TOKEN` secret (a token with *Account · Cloudflare
+Pages · Edit*) and a `CLOUDFLARE_ACCOUNT_ID` variable in the repository's Actions settings.
+Without them it skips deployment with a warning.
+
+`public/404.html` matters. Without a top-level 404 page, Pages treats the site as a single-page
+app and answers every missing URL with `index.html` and a `200`. A missing terrain file would
+then fail silently instead of loudly. The smoke tests check that missing files are real 404s.
+
+`wrangler.jsonc` still describes the earlier Workers deployment (`npm run deploy`), which serves
+the same `public/` directory.

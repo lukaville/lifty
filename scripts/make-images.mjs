@@ -45,15 +45,10 @@ await sharp(scene).composite([{ input: title }]).png({ compressionLevel: 9, pale
 
 // ---- README screenshots
 await shot(path.join(ROOT, "docs/images/desktop.png"), { width: 1440, height: 900, params: "site=devils-dyke&dir=326&mph=14" });
-await shot(path.join(ROOT, "docs/images/sites.png"), {
-  width: 1440, height: 900, params: "site=beachy-head&dir=146&mph=14",
-  before: (p) => p.locator("#siteButton").click(),
-});
-await shot(path.join(ROOT, "docs/images/phone.png"), { width: 390, height: 844, params: "site=beachy-head&dir=146&mph=14", mobile: true });
 await shot(path.join(ROOT, "docs/images/rotor.png"), { width: 1440, height: 900, params: "site=devils-dyke&dir=146&mph=20", hideUI: true });
 
 // shrink the PNGs a little for the repo
-for (const f of ["desktop", "sites", "phone", "rotor"]) {
+for (const f of ["desktop", "rotor"]) {
   const p = path.join(ROOT, `docs/images/${f}.png`);
   const img = sharp(fs.readFileSync(p));
   const { width } = await img.metadata();
@@ -61,4 +56,4 @@ for (const f of ["desktop", "sites", "phone", "rotor"]) {
   fs.renameSync(p + ".tmp", p);
 }
 await browser.close();
-console.log("wrote public/og-image.png and docs/images/{desktop,sites,phone,rotor}.png");
+console.log("wrote public/og-image.png and docs/images/{desktop,rotor}.png");

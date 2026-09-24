@@ -1,6 +1,6 @@
 // Smoke test for a deployed site (or the local server): real rendering, real
 // satellite imagery, the production asset config.
-//   BASE_URL=https://shgc-paragliding-sites.nick-4f5.workers.dev npm run test:smoke
+//   BASE_URL=https://liftyapp.pages.dev npm run test:smoke
 import { test, expect } from "./fixtures.mjs";
 
 test("the deployed app boots with imagery, terrain, trees and airflow", async ({ page, app }) => {

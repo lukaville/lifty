@@ -1,0 +1,42 @@
+name: deploy liftyautopush
+
+# Deploys the head of main to https://liftyautopush.pages.dev on every push.
+# (The main site, https://liftyapp.pages.dev, is deployed by hand: npm run deploy:pages.)
+#
+# Needs, in Settings → Secrets and variables → Actions:
+#   secret   CLOUDFLARE_API_TOKEN   — API token with "Account · Cloudflare Pages · Edit"
+#   variable CLOUDFLARE_ACCOUNT_ID  — the Cloudflare account ID
+# Without them the deploy step is skipped with a warning.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-liftyautopush
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --ignore-scripts
+      # a quick gate: don't publish a head whose physics/data tests fail
+      - run: npm run test:unit
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID not set — skipping deploy"
+            exit 0
+          fi
+          npx wrangler pages deploy public --project-name liftyautopush --branch main \
+            --commit-hash "$GITHUB_SHA" --commit-message "$(git log -1 --format=%s)" --commit-dirty=true
+          echo "Deployed $GITHUB_SHA to https://liftyautopush.pages.dev" >> "$GITHUB_STEP_SUMMARY"

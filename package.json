@@ -2,7 +2,7 @@
   "name": "lifty",
   "version": "1.0.0",
   "description": "Lifty: 3-D ridge lift and rotor for paragliding sites, with LiDAR terrain, trees and buildings, satellite imagery, and a physics model of the airflow.",
-  "homepage": "https://shgc-paragliding-sites.nick-4f5.workers.dev",
+  "homepage": "https://liftyapp.pages.dev",
   "author": "Nick and the Lifty contributors",
   "license": "MIT",
   "private": true,
@@ -29,13 +29,15 @@
     "test:screenshots:update": "playwright test --project=desktop --project=mobile -g \"scene|UI|screenshots\" --update-snapshots",
     "test:golden:update": "UPDATE_GOLDEN=1 node --test tests/unit/golden.test.mjs",
     "test:smoke": "playwright test --project=smoke",
-    "verify:live": "BASE_URL=https://shgc-paragliding-sites.nick-4f5.workers.dev playwright test --project=smoke",
+    "verify:live": "BASE_URL=https://liftyapp.pages.dev playwright test --project=smoke",
     "fetch-terrain": "node scripts/fetch-terrain.mjs",
     "fetch-surface": "node scripts/fetch-surface.mjs",
     "analyse-lift": "node scripts/analyse-lift.mjs",
     "deploy": "wrangler deploy",
     "deploy:dry": "wrangler deploy --dry-run",
-    "make-images": "node scripts/make-images.mjs"
+    "make-images": "node scripts/make-images.mjs",
+    "deploy:pages": "wrangler pages deploy public --project-name liftyapp --branch main",
+    "verify:autopush": "BASE_URL=https://liftyautopush.pages.dev playwright test --project=smoke"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
