@@ -47,7 +47,9 @@ function walk(rel) {
     files++; total += st.size;
     const dest = path.join(out, r);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.copyFileSync(a, dest);
+    // read + write rather than copyFileSync: libuv's copy_file_range fast path
+    // can spin forever on some Linux filesystems (seen in Docker)
+    fs.writeFileSync(dest, fs.readFileSync(a));
   }
 }
 
