@@ -87,6 +87,19 @@ export const reattachH = (tanLee) => {
   return deg <= 18 ? 0 : 6.5 * (1 - Math.exp(-(deg - 18) / 12));
 };
 export const ROTOR_RECOVERY_H = 4;
+// Separation on the WINDWARD side of steep faces (forward-facing step /
+// escarpment flow). Two bubbles, both sized by the face height H:
+//   · crest-edge bubble on top, just behind the lip, where the flow can't turn
+//     the sharp corner: none below ~30° (flow stays attached over the crest),
+//     growing to ~1 H long and ~0.25 H high for a sheer cliff;
+//   · toe vortex at the foot of the face, where the approaching air stalls:
+//     only for faces steeper than ~45°, ~0.6 H upwind and ~0.35 H high.
+// Empirical, from escarpment / forward-facing-step studies — not a solved flow.
+export const crestBubbleH = (tanFace) => {
+  const deg = (Math.atan(tanFace) * 180) / Math.PI;
+  return deg <= 30 ? 0 : 1 - Math.exp(-(deg - 30) / 15);
+};
+const TOE_MIN_DEG = 45, TOE_LENGTH_H = 0.6, TOE_HEIGHT_H = 0.35, CREST_HEIGHT_H = 0.25;
 const WAKE_MAX_M = 1800;
 // a lee drop this high (m) produces full-strength rotor; smaller banks less
 const ROTOR_FULL_H = 50;
@@ -115,6 +128,7 @@ export const MIN_CLEARANCE = 15;
 // cost height, so a band where you can merely hold 0–0.2 m/s is one you slowly
 // sink out of. What pilots call "the lift band" is where they can gain height.
 export const USABLE_CLIMB = 0.2;
+export const ROTOR_UNUSABLE = 0.35;
 
 export const windProfile = (d) => Math.log((Math.max(d, 0) + Z0) / Z0) / Math.log((Z_REF + Z0) / Z0);
 
@@ -420,8 +434,72 @@ export class SitePhysics {
       }
     }
     const env = { top, dist, rotorI, rotorTop };
+    this._faceSeparation(fe, fn, env);
     this._wakeCache.set(key, env);
     return env;
+  }
+
+  // Windward-face separation (see crestBubbleH): adds the crest-edge bubble and
+  // the toe vortex of steep faces into env.rotorI / env.rotorTop. Walks the
+  // 1 m LiDAR ground along the flow in 5 m steps.
+  _faceSeparation(fe, fn, env) {
+    const n = this.n, cell = this.cell, half = this.windowM / 2, ds = 5;
+    const tan30 = Math.tan((30 * Math.PI) / 180), tan20 = Math.tan((20 * Math.PI) / 180);
+    const tanToe = Math.tan((TOE_MIN_DEG * Math.PI) / 180);
+    const at = (x, y, s) => this.groundAt(x + fe * s, y + fn * s);   // s > 0 downwind
+    // climb a face upwind (dir = -1) or downwind (dir = +1) from s0 while it stays
+    // steeper than 20°: returns its height, horizontal length and far end
+    const face = (x, y, s0, dir) => {
+      let s = s0, h0 = at(x, y, s0), h = h0;
+      for (let k = 0; k < 120; k++) {
+        const hn = at(x, y, s + dir * ds);
+        const rise = dir < 0 ? h - hn : hn - h;           // height gained going toward the top
+        if (rise / ds < tan20) break;
+        h = hn; s += dir * ds;
+      }
+      return { H: Math.abs(h - h0), len: Math.abs(s - s0), end: s, hEnd: h };
+    };
+    for (let j = 0; j < n; j++) {
+      for (let i = 0; i < n; i++) {
+        const k = j * n + i, x = -half + i * cell, y = -half + j * cell, g = this.groundAt(x, y);
+        let bestI = 0, bestTop = 0;
+        // --- crest-edge bubble: is there a steep windward face just upwind?
+        for (let s = -ds; s >= -300; s -= ds) {
+          const hHere = at(x, y, s + ds), hUp = at(x, y, s);
+          if ((hHere - hUp) / ds > tan30) {                 // ground drops away upwind: a windward face
+            const edge = hHere, f = face(x, y, s + ds, -1);
+            const H = edge - f.hEnd;
+            const xr = crestBubbleH(H / Math.max(f.len, ds));
+            const xh = -(s + ds) / Math.max(H, 1);           // distance behind the lip, in H
+            if (H > 8 && xr > 0 && xh <= 1.5 * xr && g - edge < 0.15 * H && edge - g < 0.5 * H) {
+              const shape = xh <= 0.5 * xr ? 1 : xh <= xr ? 1 - 0.5 * (xh - 0.5 * xr) / (0.5 * xr) : 0.5 * (1 - (xh - xr) / (0.5 * xr));
+              const inten = Math.max(0, shape) * Math.min(1, H / ROTOR_FULL_H) * 0.85;
+              if (inten > bestI) {
+                bestI = inten;
+                bestTop = edge + CREST_HEIGHT_H * H * Math.max(0.3, Math.sin(Math.PI * Math.min(1, xh / xr)) ** 0.5);
+              }
+            }
+            break;                                        // only the nearest face upwind counts
+          }
+        }
+        // --- toe vortex: is there a steep face rising just downwind?
+        for (let s = 0; s <= 200; s += ds) {
+          const h0 = at(x, y, s), h1 = at(x, y, s + ds);
+          if (h0 - g > 3) break;                          // ground already rising: not at a foot
+          if ((h1 - h0) / ds > tanToe) {
+            const f = face(x, y, s, +1), H = f.H;
+            const deg = (Math.atan(H / Math.max(f.len, ds)) * 180) / Math.PI;
+            const d = s / Math.max(H, 1);
+            if (H > 8 && deg > TOE_MIN_DEG && d < TOE_LENGTH_H) {
+              const inten = (1 - d / TOE_LENGTH_H) * Math.min(1, H / ROTOR_FULL_H) * 0.7;
+              if (inten > bestI) { bestI = inten; bestTop = h0 + TOE_HEIGHT_H * H * Math.sqrt(1 - d / TOE_LENGTH_H); }
+            }
+            break;
+          }
+        }
+        if (bestI > env.rotorI[k]) { env.rotorI[k] = bestI; env.rotorTop[k] = Math.max(bestTop, g + 3); }
+      }
+    }
   }
 
   // Rotor strength vs distance x behind the separating crest (in H), for a
@@ -546,12 +624,17 @@ export class SitePhysics {
   // Air closer than MIN_CLEARANCE to the surface doesn't count: a wing on a beat
   // needs about a span plus margin from the slope, trees or roofs to turn safely,
   // so the thin film of lift hugging the lower slope is not a usable band.
-  netClimb(field, wing, margin = USABLE_CLIMB) {
+  // Air inside a rotor / separation bubble (turb.intensity ≥ ROTOR_UNUSABLE, below
+  // its turbulent top) isn't usable either, whatever its mean updraught.
+  netClimb(field, wing, margin = USABLE_CLIMB, turb = null) {
     const out = field.layers.map((w, li) => {
       const s = field.spd[li], net = new Float32Array(w.length);
       if (field.agl[li] < MIN_CLEARANCE) return net.fill(-Infinity);
       // stored relative to the usable-climb margin: > 0 means usable lift
-      for (let k = 0; k < w.length; k++) net[k] = w[k] - sinkRate(wing, s[k]) - margin;
+      for (let k = 0; k < w.length; k++) {
+        net[k] = w[k] - sinkRate(wing, s[k]) - margin;
+        if (turb && turb.intensity[k] >= ROTOR_UNUSABLE && field.base[k] + field.agl[li] < turb.top[k]) net[k] = -Infinity;
+      }
       return net;
     });
     out.margin = margin;
@@ -562,6 +645,7 @@ export class SitePhysics {
   // the realistic ceiling — the altitude above which the air no longer rises
   // fast enough to hold that wing up (or the wind aloft is too strong to stay).
   bandStats(field, wing, net = this.netClimb(field, wing), radius = 1200) {
+    // (pass a netClimb that includes turbulence to exclude rotor air)
     const n = this.n, cell = this.cell, half = this.windowM / 2;
     let bestClimb = -Infinity, ceiling = null, bestAlt = null;
     const r2 = radius * radius;

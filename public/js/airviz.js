@@ -12,7 +12,8 @@
 
 import * as THREE from "three";
 import { sinkRate, windProfile, USABLE_CLIMB } from "./physics.js";
-import { rand } from "./rng.js";
+import { stream } from "./rng.js";
+const randT = stream("tracers"), randR = stream("rotor");
 
 const N_TRACERS = 2600;
 const TRAIL = 18;              // points per trail
@@ -20,7 +21,7 @@ const TRAIL_DT = 1.1;          // simulated seconds between trail points
 const TIME_SCALE = 16;         // simulated seconds per real second
 const MAX_ROTOR_SPRITES = 9000;
 
-function gauss() { return Math.sqrt(-2 * Math.log(rand() + 1e-9)) * Math.cos(2 * Math.PI * rand()); }
+function gauss() { return Math.sqrt(-2 * Math.log(randT() + 1e-9)) * Math.cos(2 * Math.PI * randT()); }
 
 export class AirViz {
   constructor(parent, { phys, worldY, exag, tracers = N_TRACERS }) {
@@ -165,18 +166,18 @@ export class AirViz {
   _spawn(p) {
     const half = this.phys.windowM / 2 - 180;
     let x, y;
-    if (rand() < 0.6) {           // concentrate around take-off, where it matters
-      const r = 950 * Math.sqrt(rand()), a = rand() * Math.PI * 2;
+    if (randT() < 0.6) {           // concentrate around take-off, where it matters
+      const r = 950 * Math.sqrt(randT()), a = randT() * Math.PI * 2;
       x = r * Math.cos(a); y = r * Math.sin(a);
     } else {
-      x = (rand() * 2 - 1) * half; y = (rand() * 2 - 1) * half;
+      x = (randT() * 2 - 1) * half; y = (randT() * 2 - 1) * half;
     }
     // upwind bias: start some from upwind so streams cross the ridge
-    const d = 3 + 260 * Math.pow(rand(), 1.9);
+    const d = 3 + 260 * Math.pow(randT(), 1.9);
     this.tp[p * 3] = x; this.tp[p * 3 + 1] = y; this.tp[p * 3 + 2] = d;
     this.tv[p * 3] = this.tv[p * 3 + 1] = this.tv[p * 3 + 2] = 0;
     this.age[p] = 0;
-    this.life[p] = 9 + rand() * 9;
+    this.life[p] = 9 + randT() * 9;
     this.trailClock[p] = 0;
     // collapse the trail onto the spawn point
     const s = this._sample(x, y, d, this._s);
@@ -210,7 +211,7 @@ export class AirViz {
     const s = this._s, cls = [0, 0, 0, 0];
     const U = Math.max(1, F.U);
     if (this._spawnAll) {
-      for (let p = 0; p < this.N; p++) { this._spawn(p); this.age[p] = rand() * this.life[p]; }
+      for (let p = 0; p < this.N; p++) { this._spawn(p); this.age[p] = randT() * this.life[p]; }
       this._spawnAll = false;
     }
     for (let p = 0; p < this.N; p++) {
@@ -490,18 +491,18 @@ export class AirViz {
     const pos = [], col = [], ph = [], amp = [], size = [], al = [];
     for (const [x, y, cs, g, top, I, kind] of cand) {
       let cnt = (kind ? I * 0.5 : I * 3.2) * scale;
-      cnt = Math.floor(cnt) + (rand() < cnt % 1 ? 1 : 0);
+      cnt = Math.floor(cnt) + (randR() < cnt % 1 ? 1 : 0);
       for (let c = 0; c < cnt; c++) {
-        const px = x + (rand() - 0.5) * cs * 1.1, py = y + (rand() - 0.5) * cs * 1.1;
-        const fr = Math.pow(rand(), 1.4);
+        const px = x + (randR() - 0.5) * cs * 1.1, py = y + (randR() - 0.5) * cs * 1.1;
+        const fr = Math.pow(randR(), 1.4);
         const h = g + 1 + fr * Math.max(2, top - g);
         pos.push(px, this.worldY(h), -py);
         const t = Math.min(1, I);
         if (kind) col.push(1.0, 0.62 - 0.2 * t, 0.25);          // obstacle wake: amber
         else col.push(0.95, 0.32 - 0.15 * t, 0.2 - 0.08 * t);   // terrain rotor: red
-        ph.push(rand() * 100);
+        ph.push(randR() * 100);
         amp.push((kind ? 2.5 : 9) * (0.5 + I));
-        size.push((kind ? 5 : 16) * (0.7 + rand() * 0.6));
+        size.push((kind ? 5 : 16) * (0.7 + randR() * 0.6));
         al.push((kind ? 0.22 : 0.28) * (0.4 + 0.6 * I));
       }
     }

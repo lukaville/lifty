@@ -3,43 +3,43 @@
   "10mph": {
    "pg-typical": {
     "ceilingFt": 330,
-    "maxClimb": 1.99
+    "maxClimb": 2
    },
    "windTakeoffMph": 12.1,
    "windAloftMph": 16.8,
    "hg": {
     "ceilingFt": 493,
-    "maxClimb": 2.26
+    "maxClimb": 2.27
    },
-   "rotorCover": 0.0234,
+   "rotorCover": 0.0246,
    "wakeCover": 0.0507
   },
   "14mph": {
    "pg-typical": {
     "ceilingFt": 563,
-    "maxClimb": 3.22
+    "maxClimb": 3.23
    },
    "windTakeoffMph": 16.9,
    "windAloftMph": 23.5,
    "hg": {
     "ceilingFt": 736,
-    "maxClimb": 3.48
+    "maxClimb": 3.5
    },
-   "rotorCover": 0.0273,
+   "rotorCover": 0.0289,
    "wakeCover": 0.1082
   },
   "20mph": {
    "pg-typical": {
-    "ceilingFt": 398,
-    "maxClimb": 4.32
+    "ceilingFt": 414,
+    "maxClimb": 4.34
    },
    "windTakeoffMph": 24.1,
    "windAloftMph": 33.5,
    "hg": {
     "ceilingFt": 744,
-    "maxClimb": 4.94
+    "maxClimb": 4.96
    },
-   "rotorCover": 0.0299,
+   "rotorCover": 0.0316,
    "wakeCover": 0.1526
   }
  },
@@ -55,8 +55,8 @@
     "ceilingFt": 504,
     "maxClimb": 2.05
    },
-   "rotorCover": 0.0001,
-   "wakeCover": 0.0286
+   "rotorCover": 0.0003,
+   "wakeCover": 0.0284
   },
   "14mph": {
    "pg-typical": {
@@ -69,8 +69,8 @@
     "ceilingFt": 669,
     "maxClimb": 3.19
    },
-   "rotorCover": 0.0001,
-   "wakeCover": 0.0641
+   "rotorCover": 0.0005,
+   "wakeCover": 0.0637
   },
   "20mph": {
    "pg-typical": {
@@ -83,8 +83,8 @@
     "ceilingFt": 672,
     "maxClimb": 4.54
    },
-   "rotorCover": 0.0005,
-   "wakeCover": 0.0857
+   "rotorCover": 0.001,
+   "wakeCover": 0.0853
   }
  },
  "mount-caburn": {
@@ -99,8 +99,8 @@
     "ceilingFt": 288,
     "maxClimb": 1.22
    },
-   "rotorCover": 0.0502,
-   "wakeCover": 0.0474
+   "rotorCover": 0.0517,
+   "wakeCover": 0.0472
   },
   "14mph": {
    "pg-typical": {
@@ -113,8 +113,8 @@
     "ceilingFt": 480,
     "maxClimb": 2.05
    },
-   "rotorCover": 0.061,
-   "wakeCover": 0.1014
+   "rotorCover": 0.0636,
+   "wakeCover": 0.101
   },
   "20mph": {
    "pg-typical": {
@@ -127,8 +127,8 @@
     "ceilingFt": 511,
     "maxClimb": 3.03
    },
-   "rotorCover": 0.0676,
-   "wakeCover": 0.1375
+   "rotorCover": 0.0707,
+   "wakeCover": 0.1369
   }
  },
  "beachy-head": {
@@ -140,39 +140,39 @@
    "windTakeoffMph": 11.3,
    "windAloftMph": 16,
    "hg": {
-    "ceilingFt": 462,
+    "ceilingFt": 461,
     "maxClimb": 2.7
    },
-   "rotorCover": 0.0009,
-   "wakeCover": 0.0092
+   "rotorCover": 0.0354,
+   "wakeCover": 0.0076
   },
   "14mph": {
    "pg-typical": {
-    "ceilingFt": 535,
+    "ceilingFt": 534,
     "maxClimb": 3.83
    },
    "windTakeoffMph": 15.8,
    "windAloftMph": 22.4,
    "hg": {
-    "ceilingFt": 684,
+    "ceilingFt": 683,
     "maxClimb": 4.1
    },
-   "rotorCover": 0.002,
-   "wakeCover": 0.0246
+   "rotorCover": 0.0397,
+   "wakeCover": 0.0214
   },
   "20mph": {
    "pg-typical": {
-    "ceilingFt": 452,
+    "ceilingFt": 451,
     "maxClimb": 5.19
    },
    "windTakeoffMph": 22.5,
    "windAloftMph": 32,
    "hg": {
-    "ceilingFt": 714,
-    "maxClimb": 5.84
+    "ceilingFt": 713,
+    "maxClimb": 5.83
    },
-   "rotorCover": 0.0035,
-   "wakeCover": 0.0351
+   "rotorCover": 0.0421,
+   "wakeCover": 0.0313
   }
  },
  "ditchling": {
@@ -187,7 +187,7 @@
     "ceilingFt": 489,
     "maxClimb": 2.07
    },
-   "rotorCover": 0.0009,
+   "rotorCover": 0.0023,
    "wakeCover": 0.0471
   },
   "14mph": {
@@ -201,12 +201,12 @@
     "ceilingFt": 731,
     "maxClimb": 3.25
    },
-   "rotorCover": 0.0023,
+   "rotorCover": 0.0047,
    "wakeCover": 0.1046
   },
   "20mph": {
    "pg-typical": {
-    "ceilingFt": 447,
+    "ceilingFt": 450,
     "maxClimb": 4.28
    },
    "windTakeoffMph": 25.2,
@@ -215,7 +215,7 @@
     "ceilingFt": 747,
     "maxClimb": 4.79
    },
-   "rotorCover": 0.0045,
+   "rotorCover": 0.0069,
    "wakeCover": 0.1424
   }
  },
@@ -231,7 +231,7 @@
     "ceilingFt": 449,
     "maxClimb": 1.92
    },
-   "rotorCover": 0.0001,
+   "rotorCover": 0.002,
    "wakeCover": 0.0107
   },
   "14mph": {
@@ -242,68 +242,68 @@
    "windTakeoffMph": 17.6,
    "windAloftMph": 23.5,
    "hg": {
-    "ceilingFt": 655,
+    "ceilingFt": 654,
     "maxClimb": 3.02
    },
-   "rotorCover": 0.0005,
+   "rotorCover": 0.0029,
    "wakeCover": 0.0298
   },
   "20mph": {
    "pg-typical": {
-    "ceilingFt": 419,
+    "ceilingFt": 430,
     "maxClimb": 3.81
    },
    "windTakeoffMph": 25.2,
    "windAloftMph": 33.5,
    "hg": {
-    "ceilingFt": 679,
+    "ceilingFt": 678,
     "maxClimb": 4.34
    },
-   "rotorCover": 0.0012,
+   "rotorCover": 0.0036,
    "wakeCover": 0.0445
   }
  },
  "high-and-over": {
   "10mph": {
    "pg-typical": {
-    "ceilingFt": 292,
+    "ceilingFt": 291,
     "maxClimb": 1.62
    },
    "windTakeoffMph": 9.8,
    "windAloftMph": 14.4,
    "hg": {
-    "ceilingFt": 390,
+    "ceilingFt": 391,
     "maxClimb": 1.89
    },
-   "rotorCover": 0.0079,
+   "rotorCover": 0.0083,
    "wakeCover": 0.037
   },
   "14mph": {
    "pg-typical": {
-    "ceilingFt": 450,
+    "ceilingFt": 451,
     "maxClimb": 2.74
    },
    "windTakeoffMph": 13.8,
    "windAloftMph": 20.1,
    "hg": {
-    "ceilingFt": 563,
-    "maxClimb": 2.99
+    "ceilingFt": 564,
+    "maxClimb": 3
    },
-   "rotorCover": 0.0099,
+   "rotorCover": 0.0106,
    "wakeCover": 0.0943
   },
   "20mph": {
    "pg-typical": {
-    "ceilingFt": 416,
-    "maxClimb": 3.86
+    "ceilingFt": 415,
+    "maxClimb": 3.85
    },
    "windTakeoffMph": 19.7,
    "windAloftMph": 28.7,
    "hg": {
     "ceilingFt": 599,
-    "maxClimb": 4.35
+    "maxClimb": 4.36
    },
-   "rotorCover": 0.0112,
+   "rotorCover": 0.0118,
    "wakeCover": 0.1434
   }
  },
@@ -311,30 +311,30 @@
   "10mph": {
    "pg-typical": {
     "ceilingFt": 117,
-    "maxClimb": 1
+    "maxClimb": 0.99
    },
    "windTakeoffMph": 11.3,
    "windAloftMph": 15.4,
    "hg": {
     "ceilingFt": 168,
-    "maxClimb": 1.27
+    "maxClimb": 1.26
    },
-   "rotorCover": 0.0001,
-   "wakeCover": 0.0106
+   "rotorCover": 0.01,
+   "wakeCover": 0.0088
   },
   "14mph": {
    "pg-typical": {
     "ceilingFt": 199,
-    "maxClimb": 1.87
+    "maxClimb": 1.86
    },
    "windTakeoffMph": 15.8,
    "windAloftMph": 21.6,
    "hg": {
     "ceilingFt": 257,
-    "maxClimb": 2.14
+    "maxClimb": 2.13
    },
-   "rotorCover": 0.0014,
-   "wakeCover": 0.0598
+   "rotorCover": 0.0128,
+   "wakeCover": 0.0562
   },
   "20mph": {
    "pg-typical": {
@@ -344,11 +344,11 @@
    "windTakeoffMph": 22.6,
    "windAloftMph": 30.8,
    "hg": {
-    "ceilingFt": 312,
+    "ceilingFt": 313,
     "maxClimb": 3.22
    },
-   "rotorCover": 0.0024,
-   "wakeCover": 0.1139
+   "rotorCover": 0.0142,
+   "wakeCover": 0.1091
   }
  }
 }

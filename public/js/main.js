@@ -381,7 +381,7 @@ function recompute() {
   app.liftField = app.phys.computeLift(fe * spd, fn * spd);
   app.turbField = app.phys.computeTurbulence(fe, fn, spd);
   app.fineWake = app.phys.obstacleWakes(fe, fn);
-  app.net = app.phys.netClimb(app.liftField, wing, app.minLift);
+  app.net = app.phys.netClimb(app.liftField, wing, app.minLift, app.turbField);
   app.stats = app.phys.bandStats(app.liftField, wing, app.net);
   app.stats.obstacleTurb = obstacleTurbNearTakeoff(spd);
   app.viz.setFields({ field: app.liftField, net: app.net, turb: app.turbField, fine: app.fineWake, wing, speed: spd });

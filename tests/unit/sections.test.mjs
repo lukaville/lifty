@@ -20,6 +20,9 @@ const GOLDEN = path.join(ROOT, "tests/golden/sections");
 const OUT = path.join(ROOT, "test-results/sections");
 const MPH = 0.44704;
 const EN_B = WINGS["pg-typical"];
+// Pure maths, so identical everywhere up to float rounding at colour edges.
+// Tight on purpose: a small rotor bubble is only ~0.1% of the image.
+const MAX_DIFF = 0.0003;
 
 // ---- hill shapes (x east, metres; heights metres AMSL) ------------------------
 const halfGauss = (H, aUp, aDown) => (x) => 20 + H * Math.exp(-(x * x) / (x < 0 ? aUp * aUp : aDown * aDown));
@@ -67,7 +70,6 @@ for (const c of CASES) {
     const maxRotor = Math.max(...img.turb.intensity);
     if (c.expect.includes("lift")) assert.ok(hasLift, "expected usable lift");
     if (c.expect.includes("rotor")) assert.ok(maxRotor > 0.3, `expected rotor, max ${maxRotor}`);
-    if (c.expect === "rotor") assert.ok(!hasLift || c.name.includes("25mph") || true);
 
     const file = path.join(GOLDEN, `${c.name}.png`);
     const png = encodePNG(img.width, img.height, Buffer.from(img.rgb));
@@ -75,10 +77,10 @@ for (const c of CASES) {
     assert.ok(fs.existsSync(file), `missing baseline ${file} — run UPDATE_GOLDEN=1 npm run test:unit`);
     const g = decodePNG(fs.readFileSync(file));
     const { ratio, diff } = diffImages(img, { width: g.width, height: g.height, rgb: g.data });
-    if (ratio > 0.002) {
+    if (ratio > MAX_DIFF) {
       fs.writeFileSync(path.join(OUT, `${c.name}.actual.png`), png);
       if (diff) fs.writeFileSync(path.join(OUT, `${c.name}.diff.png`), encodePNG(diff.width, diff.height, Buffer.from(diff.rgb)));
     }
-    assert.ok(ratio <= 0.002, `${(ratio * 100).toFixed(2)}% of pixels differ — see test-results/sections/${c.name}.diff.png`);
+    assert.ok(ratio <= MAX_DIFF, `${(ratio * 100).toFixed(2)}% of pixels differ — see test-results/sections/${c.name}.diff.png`);
   });
 }

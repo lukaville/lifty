@@ -201,6 +201,24 @@ That rule is really about **sharp** obstacles.
 Trees, hedges and buildings (8 m grid) are sharp obstacles, so they follow it directly: a
 cavity and near wake at full strength to ~3 H, fading out by ~10 H.
 
+### Windward-face separation: cliff tops and feet
+Steep faces also separate on the **windward** side, where the lee-rotor test above never looks.
+This is forward-facing-step / escarpment flow:
+
+- **Crest-edge bubble.** Air coming up a steep face can't turn the sharp corner onto the top, so
+  it separates at the lip. A turbulent bubble sits on the top just behind the edge, with lift
+  still above and in front of it. The flow stays attached below about 30°; above that the bubble
+  grows to about 1 H long (`1 − e^{−(θ−30°)/15°}`) and 0.25 H high on a sheer cliff.
+- **Toe vortex.** On faces steeper than about 45°, the approaching air stalls against the foot,
+  about 0.6 H upwind and 0.35 H high.
+
+Rotor air doesn't count as usable lift, whatever its mean updraught: the band, the ceiling and
+the best climb exclude it.
+
+This is empirical, like the lee rotor: sizes come from escarpment and step studies, not from a
+solved flow. Check it with `node scripts/section.mjs beachy-head 180 16 pg-typical -1250 -480`,
+a section through the Beachy Head chalk cliffs.
+
 ## Vegetation and buildings in the airflow
 Trees, hedges and buildings come from the LiDAR landcover (see [DATA.md](DATA.md)) and act on the
 air at two scales:

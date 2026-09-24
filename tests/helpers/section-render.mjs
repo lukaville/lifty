@@ -32,8 +32,8 @@ const turbColour = (i) => (i > 0.02 ? mix([253, 232, 200], [215, 60, 20], Math.m
  */
 export function renderSection(p, { fe, fn, U, wing, margin = physics.USABLE_CLIMB, x0 = -1200, x1 = 900, zMax = 420, width = 700, panelH = 180, wMax = 3, cMax = 3 }) {
   const F = p.computeLift(fe * U, fn * U);
-  const net = p.netClimb(F, wing, margin);
   const T = p.computeTurbulence(fe, fn, U);
+  const net = p.netClimb(F, wing, margin, T);
   const gap = 4, height = panelH * 3 + gap * 2;
   const rgb = new Uint8Array(width * height * 3).fill(255);
   const put = (px, py, c) => {

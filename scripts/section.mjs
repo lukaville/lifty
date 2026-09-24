@@ -1,5 +1,6 @@
-// Along-wind cross-section through take-off: terrain #, trees T, bushes b, buildings B,
-// usable net climb as digits in 0.5 m/s steps.  node scripts/section.mjs <slug> <dirDeg> <mph> [wing]
+// Along-wind cross-section through take-off: terrain #, trees T, bushes b, buildings B, rotor R,
+// usable net climb as digits in 0.5 m/s steps.
+//   node scripts/section.mjs <slug> <dirDeg> <mph> [wing] [centreEast centreNorth]
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,12 +9,13 @@ globalThis.atob ??= (s) => Buffer.from(s, "base64").toString("binary");
 const { SitePhysics, WINGS, sinkRate } = await import(R + "/public/js/physics.js");
 const { decodeLandcover } = await import(R + "/public/js/landcover.js");
 const { decodePNG } = await import(R + "/scripts/lib/png.mjs");
-const [slug = "devils-dyke", dirS = "326", mphS = "10", wingK = "pg-typical"] = process.argv.slice(2);
+const [slug = "devils-dyke", dirS = "326", mphS = "10", wingK = "pg-typical", e0S = "0", n0S = "0"] = process.argv.slice(2);
+const E0 = +e0S, N0 = +n0S;   // section centre (m east/north of take-off)
 const t = JSON.parse(fs.readFileSync(`${R}/public/data/terrain/${slug}.json`));
 const png = decodePNG(fs.readFileSync(`${R}/public/data/landcover/${slug}.png`));
 const p = new SitePhysics(t, decodeLandcover(png.data, png.width, 3200, png.channels));
 const b = +dirS * Math.PI / 180, fe = -Math.sin(b), fn = -Math.cos(b), U = +mphS * 0.44704;
-const F = p.computeLift(fe * U, fn * U), net = p.netClimb(F, WINGS[wingK]);
+const F = p.computeLift(fe * U, fn * U), T = p.computeTurbulence(fe, fn, U), net = p.netClimb(F, WINGS[wingK], undefined, T);
 const st = p.bandStats(F, WINGS[wingK], net);
 const layerAt = (x, y, alt) => {           // net climb at absolute altitude via terrain-following layers
   const base = p._sample(F.base, x, y), d = alt - base;
@@ -28,13 +30,15 @@ console.log(`${slug} ${dirS}° ${mphS} mph ${wingK}: ceiling ${Math.round(st.cei
 for (const z of zs) {
   let row = String(z).padStart(4) + " ";
   for (const s of xs) {
-    const x = fe * s, y = fn * s, g = p.groundAt(x, y);
+    const x = E0 + fe * s, y = N0 + fn * s, g = p.groundAt(x, y);
     if (z < g) { row += "#"; continue; }
     // vegetation / buildings from the LiDAR landcover (4 m raster)
     const lc = p.landcover, q = lc ? (Math.floor((y + 1600) / lc.cell) * lc.n + Math.floor((x + 1600) / lc.cell)) : -1;
     if (lc && q >= 0 && q < lc.n * lc.n && lc.cls[q] && z < g + lc.height[q] * Math.max(1, 12 / 12)) {
       row += lc.cls[q] === 3 ? "B" : lc.cls[q] === 2 ? "T" : "b"; continue;
     }
+    // rotor / turbulence (intensity ≥ 0.35, below its top): R
+    if (p._sample(T.intensity, x, y) >= 0.35 && z < p._sample(T.top, x, y)) { row += "R"; continue; }
     const c = layerAt(x, y, z);
     row += c === null ? "#" : c > 0 ? String(Math.min(9, Math.floor(c / 0.5))) : ".";
   }

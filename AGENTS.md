@@ -80,9 +80,9 @@ or `public/data/`. Run the browser tests after touching `public/js/main.js`, `ai
   **stops the render loop**. Nothing animates or redraws until `window.__view.settle(frames)`.
   - Tests wait with `window.__view.whenIdle()`.
   - A screenshot taken without `settle()` shows a stale frame.
-- **Tracers and rotor sprites share one seeded random sequence.** Any change in how many rotor
-  sprites are drawn shifts every tracer's position in the screenshots. Expect broad, faint
-  diffs, and check that the *meaningful* part of the diff is what you intended.
+- **Tracers and rotor sprites use separate seeded random streams** (`stream()` in `rng.js`), so a
+  change in one doesn't move the other in screenshots. Keep new random consumers on their own
+  stream too.
 - **Software WebGL is slow**, several seconds per frame at 3× DPR. Keep test viewports at DPR 1–2
   and avoid per-frame waits.
 - **Heights and arcs:**

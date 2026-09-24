@@ -17,9 +17,10 @@ function measure(s) {
   for (const mph of [10, 14, 20]) {
     const w = wind(arcCentre(s), mph);
     const F = p.computeLift(w.u, w.v), T = p.computeTurbulence(w.fe, w.fn, w.U), W = p.obstacleWakes(w.fe, w.fn);
+    // as in the app: rotor air doesn't count as usable lift
     const row = {};
     for (const wk of WING_KEYS) {
-      const st = p.bandStats(F, physics.WINGS[wk]);
+      const st = p.bandStats(F, physics.WINGS[wk], p.netClimb(F, physics.WINGS[wk], undefined, T));
       row[wk] = {
         ceilingFt: st.soarable ? Math.round(st.ceilingAboveTakeoff * FT) : null,
         maxClimb: st.soarable ? +st.maxClimb.toFixed(2) : null,
