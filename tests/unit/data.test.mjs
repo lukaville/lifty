@@ -102,6 +102,29 @@ test("slugs match the data files, and every data file belongs to a site", () => 
   }
 });
 
+test("masts are well-formed, on level ground, and not also drawn as trees", () => {
+  for (const s of sites) {
+    const lc = readJSON(`public/data/landcover/${s.slug}.json`);
+    if (!lc.masts) continue;
+    const p = sitePhysics(s.slug, { landcover: false });
+    for (const [e, n, h] of lc.masts) {
+      assert.ok(Math.abs(e) <= 1600 && Math.abs(n) <= 1600 && h > 15 && h < 120, `${s.slug} mast ${e},${n},${h}`);
+      let relief = 0;
+      for (let d = -8; d <= 8; d += 4) for (let q = -8; q <= 8; q += 4) relief = Math.max(relief, p.groundAt(e + d, n + q) - p.groundAt(e, n));
+      assert.ok(relief < 10, `${s.slug} mast at ${e},${n} stands on a cliff (${relief.toFixed(0)} m)`);
+      const clash = lc.trees.filter(([te, tn, th]) => Math.hypot(te - e, tn - n) < 4 && th > 0.8 * h);
+      assert.equal(clash.length, 0, `${s.slug} mast at ${e},${n} also appears as a tree`);
+    }
+  }
+});
+
+test("Firle Beacon's transmitter masts are masts, not 40 m trees", () => {
+  const lc = readJSON("public/data/landcover/firle.json");
+  const near = (e, n) => Math.hypot(e + 1308, n + 68) < 30;
+  assert.ok(lc.masts.filter(([e, n]) => near(e, n)).length >= 2);
+  assert.equal(lc.trees.filter(([e, n, h]) => near(e, n) && h > 20).length, 0);
+});
+
 test("Newhaven's town is detected as buildings", () => {
   assert.ok(readJSON("public/data/landcover/newhaven-cliffs.json").buildings.length > 300);
 });

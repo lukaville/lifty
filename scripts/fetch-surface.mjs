@@ -367,6 +367,7 @@ async function buildSite(site) {
   // ---- connected components: drop specks, collect buildings
   const lab = new Int32Array(N1m).fill(-1);
   const buildings = [];
+  const masts = [];                 // [e, n, height]: radio masts, pylons, poles
   const stack = new Int32Array(N1m);
   for (let s = 0; s < N1m; s++) {
     if (cls[s] === 0 || lab[s] >= 0) continue;
@@ -383,6 +384,42 @@ async function buildSite(site) {
       if (j < R1 - 1 && cls[k + R1] === c && lab[k + R1] < 0) { lab[k + R1] = s; stack[sp++] = k + R1; }
     }
     const minArea = c === 3 ? 20 : c === 2 ? 4 : 3;
+    // Masts, pylons and poles: tall but far too slender to be a tree. A tree's
+    // crown radius is at least ~0.12 × its height (a 40 m beech spreads 10–16 m);
+    // a lattice mast is a few metres wide. They barely affect the wind, so they
+    // leave the obstacle raster and are drawn as masts instead of giant trees.
+    if (c === 2) {
+      let hm = 0, km = 0;
+      for (const k of members) if (ndsm[k] > hm) { hm = ndsm[k]; km = k; }
+      // a crown cut by the edge of the window looks slender too: never a mast
+      const edge = members.some((k) => { const i = k % R1, j = (k / R1) | 0; return i < 2 || j < 2 || i > R1 - 3 || j > R1 - 3; });
+      // and it stands clear of other canopy: a slender crown inside a wood is a
+      // tree whose crown the LiDAR split from its neighbours, not a mast
+      let ring = 0, other = 0;
+      if (!edge && hm > 15 && cnt < Math.PI * (0.12 * hm) ** 2) {
+        const ci = km % R1, cj = (km / R1) | 0;
+        for (let dj = -12; dj <= 12; dj++) for (let di = -12; di <= 12; di++) {
+          const rr = di * di + dj * dj, ii = ci + di, jj = cj + dj;
+          if (rr < 16 || rr > 144 || ii < 0 || jj < 0 || ii >= R1 || jj >= R1) continue;
+          ring++;
+          const q = jj * R1 + ii;
+          if (cls[q] === 2 && lab[q] !== s) other++;
+        }
+      }
+      if (ring && other / ring < 0.1) {
+        for (const k of members) { cls[k] = 0; ndsm[k] = 0; }
+        // on cliff-steep ground it's a DSM/DTM artefact, not a structure: drop it
+        // (checked 8 m around: at the foot of a cliff the ground itself is flat)
+        let relief = 0;
+        for (let dj = -8; dj <= 8; dj += 2) for (let di = -8; di <= 8; di += 2) {
+          const q = km + dj * R1 + di;
+          if (q >= 0 && q < N1m && dtm[q] === dtm[q]) relief = Math.max(relief, dtm[q] - dtm[km]);
+        }
+        if (relief > 8) { cliffPx += cnt; continue; }
+        masts.push([+((km % R1) - HALF + 0.5).toFixed(1), +(((km / R1) | 0) - HALF + 0.5).toFixed(1), +hm.toFixed(1)]);
+        continue;
+      }
+    }
     // a roof is flat as a whole; a patch of flat-ish canopy is still a tree
     let mr = 0;
     for (const k of members) mr += rgh[k];
@@ -527,8 +564,8 @@ async function buildSite(site) {
   fs.writeFileSync(path.join(LC_DIR, `${site.slug}.json`), JSON.stringify({
     source: "Environment Agency LiDAR composite DSM/DTM 1 m (OGL v3) + Esri World Imagery classification",
     windowM: WINDOW_M, lcN: LC_N,
-    fields: { trees: "e,n,h,r,rgb", bushes: "e,n,h,r,rgb", buildings: "e,n,length,width,angle,eaves,roofRise,rgb" },
-    trees, bushes, buildings: bOut,
+    fields: { trees: "e,n,h,r,rgb", bushes: "e,n,h,r,rgb", buildings: "e,n,length,width,angle,eaves,roofRise,rgb", masts: "e,n,h" },
+    trees, bushes, buildings: bOut, masts,
   }));
 
   // ---- terrain from the DTM (sea / gaps keep the terrarium DEM)
@@ -584,7 +621,7 @@ async function buildSite(site) {
   });
   fs.writeFileSync(tFile, JSON.stringify(terr));
 
-  console.log(`  ${site.name.padEnd(17)} lidar ${(phys.valid * 100).toFixed(0)}%  cliff-artefact px ${cliffPx}  trees ${trees.length}  bushes ${bushes.length}` +
+  console.log(`  ${site.name.padEnd(17)} lidar ${(phys.valid * 100).toFixed(0)}%  cliff-artefact px ${cliffPx}  trees ${trees.length}  masts ${masts.length}  bushes ${bushes.length}` +
     `  buildings ${bOut.length}  cells(open/bush/tree/bldg) ${counts.join("/")}  affine err ${bng.err.toFixed(2)}/${merc.err.toFixed(2)}  ${((Date.now() - t0) / 1000).toFixed(0)}s`);
   return { R, G, B, cls, ndsm };
 }

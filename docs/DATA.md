@@ -30,6 +30,7 @@ The data is built in two steps:
    | Bush / scrub / hedge | 0.6–2.5 m and green |
    | Water (rejected) | low-lying, blue-ish, no real height. The DSM sees waves and a different tide |
    | Crop (rejected) | huge, smooth, low "bush". A standing crop at survey time |
+   | Mast / pylon / pole | a "tree" over 15 m whose crown is far too small for its height (radius < 0.12 × height), standing clear of other canopy on level ground. Stored separately as `masts`, drawn as a slim mast, and kept out of the airflow model (a lattice mast barely affects the wind). Example: the transmitter masts on Firle Beacon |
    | Cliff face (rejected) | on cliff-steep ground, "height" that doesn't stand above the highest ground within 3 m, or is bright bare chalk. On a near-vertical face the DSM and DTM sample the top and the foot, which would otherwise read as 50 m trees |
 
    Colour alone is unreliable: roofs can look green between imagery vintages. LiDAR flatness is

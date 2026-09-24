@@ -1,4 +1,4 @@
-// Instanced 3-D models for the trees, bushes and buildings detected from LiDAR +
+// Instanced 3-D models for the trees, bushes, buildings and masts detected from LiDAR +
 // imagery (scripts/fetch-surface.mjs). Every instance is placed, sized and
 // tinted from its own measurements: crown top height and spread for trees, the
 // oriented footprint, eaves height and roof rise for buildings, and the colour
@@ -69,7 +69,7 @@ export function buildVegetation({ lc, groundAt, worldY, exag, castShadow = true 
   const group = new THREE.Group();
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
-  const stats = { trees: 0, bushes: 0, buildings: 0 };
+  const stats = { trees: 0, bushes: 0, buildings: 0, masts: 0 };
 
   // ---- trees: crown + trunk
   const leaf = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
@@ -176,6 +176,27 @@ export function buildVegetation({ lc, groundAt, worldY, exag, castShadow = true 
     });
     for (const m of [walls, roofs, flatRoofs]) { m.castShadow = castShadow; m.receiveShadow = true; group.add(m); }
     stats.buildings = blds.length;
+  }
+  // ---- masts, pylons and poles: slim tapered grey structures with an
+  // equipment platform near the top (heights from the LiDAR)
+  const masts = lc.masts || [];
+  if (masts.length) {
+    const metal = new THREE.MeshStandardMaterial({ color: 0xb9c0c7, roughness: 0.5, metalness: 0.6 });
+    const shaftG = new THREE.CylinderGeometry(0.35, 0.9, 1, 6);
+    shaftG.translate(0, 0.5, 0);
+    const platG = new THREE.CylinderGeometry(1.2, 1.2, 0.5, 8);
+    const shafts = new THREE.InstancedMesh(shaftG, metal, masts.length);
+    const plats = new THREE.InstancedMesh(platG, metal, masts.length);
+    masts.forEach(([e, n, h], i) => {
+      const g = groundAt(e, n);
+      q.identity();
+      s.set(1, h * exag, 1); p.set(e, worldY(g), -n);
+      shafts.setMatrixAt(i, m4.compose(p, q, s));
+      s.set(1, 1, 1); p.set(e, worldY(g + h * 0.82), -n);
+      plats.setMatrixAt(i, m4.compose(p, q, s));
+    });
+    for (const m of [shafts, plats]) { m.castShadow = castShadow; group.add(m); }
+    stats.masts = masts.length;
   }
   group.userData.stats = stats;
   return group;
