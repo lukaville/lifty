@@ -5,3 +5,4 @@ node_modules/
 .cache/
 test-results/
 playwright-report/
+cfd/runs/

@@ -73,6 +73,7 @@ or `public/data/`. Run the browser tests after touching `public/js/main.js`, `ai
 | Data pipeline | `scripts/fetch-terrain.mjs`, `scripts/fetch-surface.mjs`, `scripts/lib/` |
 | Site metadata | `public/data/sites.json` (schema: CONTRIBUTING.md → Adding a site) |
 | Test helpers (synthetic terrain, section renderer) | `tests/helpers/` |
+| OpenFOAM simulation pipeline (mesh, run, extract, compare) | `cfd/` (see `cfd/README.md`) |
 
 ## Gotchas
 
