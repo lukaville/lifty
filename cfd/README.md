@@ -75,6 +75,20 @@ cfd/lbm-batch.sh [jobs=2] [sites…]                       # all sites × 16 dir
   than 5 cliff heights downstream, well past reattachment. That's the turbulent wake, now
   simulated.
 
+**Resolution check (5 m against 10 m).** Devil's Dyke's working directions, 315° and 337.5°,
+were rerun at 5 m cells (`--dx 5 --lx 7000 --ly 4000 --top 700`: 203 M cells, 13.4 GB of VRAM,
+39 min each). At 14 mph the two resolutions agree:
+
+| | Best climb | Band top | Take-off / in-band wind | Rotor |
+|---|---|---|---|---|
+| 315°, 5 m / 10 m | 3.3 / 3.6 m/s | 331 / 346 ft | 14 / 14, 22 / 22 mph | 110 / 101 ha |
+| 337.5°, 5 m / 10 m | 3.4 / 3.4 m/s | 361 / 469 ft | 16 / 14, 23 / 22 mph | 118 / 116 ha |
+
+The calibration factors barely move (0.93 / 0.90 and 0.83 / 0.86). The excess wind at soaring
+height therefore comes mostly from the LES surface layer (the wall-model region), not the size
+of the terrain steps. The 10 m set is effectively converged in resolution, so the rest of the
+site wasn't rerun.
+
 **Wind speed calibration.** At 10 m cells the terrain is a staircase whose steps act as extra
 roughness, so the LES boundary layer is too slow near the ground and 10–16% too fast at
 soaring height for a given 10 m wind. Over the approach to every site, before any hill,
