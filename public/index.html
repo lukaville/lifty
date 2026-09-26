@@ -174,6 +174,7 @@
   .readout { display: flex; justify-content: space-between; align-items: baseline; margin: 10px 2px 2px; }
   .readout .big { font-size: 22px; font-weight: 700; }
   .readout .lab { color: var(--muted); font-size: 11px; }
+  .alt { color: var(--muted); font-size: 0.85em; font-weight: normal; }
   .field { margin-top: 12px; }
   .field label { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-bottom: 5px; }
   .field label b { color: var(--ink); font-weight: 600; }
@@ -347,16 +348,16 @@
     <div id="dialWrap"><canvas id="dial" width="200" height="200"></canvas></div>
     <div class="readout">
       <div><span class="big" id="dirDeg">–</span><span class="lab" id="dirCard"></span></div>
-      <div style="text-align:right"><span class="big" id="spdVal">–</span> <span class="lab">mph</span><br><span class="lab" id="spdKmh"></span></div>
+      <div style="text-align:right"><span class="big" id="spdVal">–</span> <span class="lab">km/h</span><br><span class="lab" id="spdMph"></span></div>
     </div>
     <div class="field">
-      <label title="Forecast-style wind at 10 m over open ground upwind. The hill speeds it up — see the take-off wind readout.">Forecast wind (10 m) <b><span id="spdVal2">14</span> mph</b></label>
-      <input type="range" id="speed" min="0" max="35" step="1" value="14" />
+      <label title="Forecast-style wind at 10 m over open ground upwind. The hill speeds it up — see the take-off wind readout.">Forecast wind (10 m) <b><span id="spdVal2">14</span> km/h</b> <span class="alt" id="spdMph2">9 mph</span></label>
+      <input type="range" id="speed" min="0" max="56" step="1" value="14" />
     </div>
     <div class="more">
     <div class="field">
-      <label title="Lift is shown only where your wing would climb at least this fast. 0 = break-even in perfectly smooth air; real, gusty air near a hill needs a margin to actually gain height.">Show lift above <b><span id="minLiftVal">1.0</span> m/s climb</b></label>
-      <input type="range" id="minLift" min="0" max="5" step="0.1" value="1" />
+      <label title="Lift is shown only where your wing would climb at least this fast. 0 = break-even in perfectly smooth air; real, gusty air near a hill needs a margin to actually gain height.">Show lift above <b><span id="minLiftVal">0.5</span> m/s climb</b></label>
+      <input type="range" id="minLift" min="0" max="5" step="0.1" value="0.5" />
     </div>
     <div class="field">
       <label>Wing <b id="wingSink"></b></label>
@@ -391,7 +392,8 @@
     <div class="row"><span class="bar" style="background:linear-gradient(90deg,#7b3fe0,#e3d2ff)"></span> Lift band (usable climb; contours every 25 ft, bold every 100 ft)</div>
     <div class="row"><span class="bar" style="background:linear-gradient(90deg,#c79cff,#9a5cff)"></span> Air in usable climb</div>
     <div class="row"><span class="bar" style="background:linear-gradient(90deg,#e8eef6,#fff)"></span> Air flow (no lift for your wing)</div>
-    <div class="row"><span class="bar" style="background:linear-gradient(90deg,#ffad1f,#ff5220)"></span> Rotor · tree &amp; building wakes</div>
+    <div class="row"><span class="bar" style="background:linear-gradient(90deg,#ffe066,#ff8c1a,#ed2e1a,#9e0529)"></span> Rotor: weak → strong</div>
+    <div class="row"><span class="bar" style="background:#ffad1f"></span> Tree &amp; building wakes</div>
     <div class="note"><b>Streaks are real air parcels</b> carried by the modelled wind, coloured by what your
       wing would feel: net climb = updraught minus your sink at the speed you must fly to hold position.
       Trees, hedges and buildings come from 1 m LiDAR and satellite imagery and shed their own wakes.

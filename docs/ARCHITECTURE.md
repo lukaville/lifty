@@ -104,7 +104,7 @@ lifty/
 
 | Option | Effect |
 |---|---|
-| `?site=<slug>&dir=<deg>&mph=<n>&lift=<m/s>&wing=<key>` | open at that state (values are clamped; unknown ones are ignored) |
+| `?site=<slug>&dir=<deg>&kmh=<n>&lift=<m/s>&wing=<key>` | open at that state (`mph=<n>` also works; values are clamped, unknown ones ignored). Defaults: 14 km/h, 0.5 m/s |
 | `?imagery=off` | elevation colours instead of satellite imagery |
 | `?cfd=off` / `?cfd=on` | the fast built-in model everywhere / the simulations (on by default; off in `?test` unless `cfd=on`). Never mixed: missing simulation data is an error |
 | `?flow=rans` | the OpenFOAM results from `data/cfd/` instead of the LES (local comparison only; not deployed) |

@@ -20,7 +20,7 @@ test("phone layout: site button, compact card, collapsed wind sheet, no legend",
   await expect(page.locator("#legend")).toBeHidden();
   await expect(page.locator(".hint")).toBeHidden();
   await expect(page.locator("#sheetHandle")).toBeVisible();
-  await expect(page.locator("#sheetSummary")).toHaveText(/Wind \d+° [NSEW]+ · \d+ mph/);
+  await expect(page.locator("#sheetSummary")).toHaveText(/Wind \d+° [NSEW]+ · \d+ km\/h/);
   await expect(page.locator("#dial")).toBeHidden();                 // collapsed: only summary + speed
   await expect(page.locator("#speed")).toBeVisible();
   await expect(page.locator("#info .details")).toBeHidden();
@@ -86,7 +86,7 @@ test("site card and wind sheet are mutually exclusive", async ({ page }) => {
 
 test("the sheet summary follows the wind", async ({ page, app }) => {
   await app.setSpeed(18);
-  await expect(page.locator("#sheetSummary")).toHaveText(/· 18 mph/);
+  await expect(page.locator("#sheetSummary")).toHaveText(/· 29 km\/h/);
 });
 
 test("the sites panel is full-screen and picks a site", async ({ page, app }) => {

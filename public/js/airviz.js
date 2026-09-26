@@ -396,11 +396,12 @@ export class AirViz {
     this.shells = [];
     const p = this.phys;
     if (this.turb) {
-      const I = this.turb.intensity, n = p.n;
+      const I = this.turb.intensity, n = p.n, S = this.turb.strength || I;
       // fades in from nothing (no opacity floor), so weak rotor in light wind
       // shows faintly instead of popping in at the threshold
+      // coloured by strength: pale yellow (weak) → orange → deep red (strong)
       this.shells.push(this._shell(n, p.cell, (k) => p.hs[k], (k) => this.turb.top[k], (k) => I[k], 0.03,
-        [1.0, 0.32, 0.12], 0, 1, 0));
+        [1.0, 0.32, 0.12], 0, 1, 0, (k) => S[k]));
     }
     if (this.fine) {
       const W = this.fine, f = this.speedFac;
@@ -411,9 +412,9 @@ export class AirViz {
   }
 
   // n×n grid (cell centres at −W/2 + (i+offset)·cell) -> dome mesh over [ground, top]
-  _shell(n, cell, ground, top, inten, thr, rgb, offset, opacity = 1, floor = 0.35) {
+  _shell(n, cell, ground, top, inten, thr, rgb, offset, opacity = 1, floor = 0.35, ramp = false) {
     const half = this.phys.windowM / 2, NN = n * n;
-    const pos = new Float32Array(NN * 3), alpha = new Float32Array(NN), hgt = new Float32Array(NN);
+    const pos = new Float32Array(NN * 3), alpha = new Float32Array(NN), hgt = new Float32Array(NN), str = new Float32Array(NN);
     const on = new Uint8Array(NN);
     for (let k = 0; k < NN; k++) on[k] = inten(k) >= thr && top(k) > ground(k) + 1 ? 1 : 0;
     for (let j = 0; j < n; j++) {
@@ -424,6 +425,7 @@ export class AirViz {
         pos[k * 3 + 1] = this.worldY(h);
         pos[k * 3 + 2] = -(-half + (j + offset) * cell);
         alpha[k] = on[k] ? (floor + (1 - floor) * Math.min(1, (inten(k) - thr) / 0.5)) * opacity : 0;
+        str[k] = Math.min(1, Math.max(0, ramp ? ramp(k) : inten(k)));
         hgt[k] = h - g;
       }
     }
@@ -437,23 +439,32 @@ export class AirViz {
     g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     g.setAttribute("alpha", new THREE.BufferAttribute(alpha, 1));
     g.setAttribute("hgt", new THREE.BufferAttribute(hgt, 1));
+    g.setAttribute("str", new THREE.BufferAttribute(str, 1));
     g.setIndex(idx);
     g.computeVertexNormals();
     const mat = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, side: THREE.DoubleSide,
-      uniforms: { time: { value: 0 }, color: { value: new THREE.Color(...rgb) } },
-      vertexShader: `attribute float alpha; attribute float hgt; varying float vA; varying vec3 vN; varying vec3 vV; varying vec3 vW;
-        void main(){ vA = alpha; vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz;
+      uniforms: { time: { value: 0 }, color: { value: new THREE.Color(...rgb) }, ramp: { value: ramp ? 1 : 0 } },
+      vertexShader: `attribute float alpha; attribute float hgt; attribute float str; varying float vA; varying float vS; varying vec3 vN; varying vec3 vV; varying vec3 vW;
+        void main(){ vA = alpha; vS = str; vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz;
           vec4 mv = viewMatrix * w; vN = normalize(normalMatrix * normal); vV = -mv.xyz; gl_Position = projectionMatrix * mv; }`,
-      fragmentShader: `uniform float time; uniform vec3 color; varying float vA; varying vec3 vN; varying vec3 vV; varying vec3 vW;
+      fragmentShader: `uniform float time; uniform vec3 color; uniform float ramp; varying float vA; varying float vS; varying vec3 vN; varying vec3 vV; varying vec3 vW;
+        // strength ramp: pale yellow → orange → red → deep crimson
+        vec3 heat(float s){
+          vec3 c0 = vec3(1.00, 0.88, 0.40), c1 = vec3(1.00, 0.55, 0.10), c2 = vec3(0.93, 0.18, 0.10), c3 = vec3(0.62, 0.02, 0.16);
+          return s < 0.33 ? mix(c0, c1, s / 0.33) : s < 0.66 ? mix(c1, c2, (s - 0.33) / 0.33) : mix(c2, c3, (s - 0.66) / 0.34);
+        }
         void main(){
           if (vA < 0.01) discard;
           float fres = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.6);
           float u = (vW.x + vW.z + vW.y * 1.5) / 14.0 - time * 1.8;     // drifting hatch
           float dh = abs(fract(u) - 0.5) / max(fwidth(u), 1e-4);     // px from stripe centre
           float stripe = 1.0 - smoothstep(0.8, 2.2, dh);
-          vec3 c = mix(color, vec3(1.0, 0.93, 0.82), max(stripe * 0.55, fres * 0.5));
-          float a = vA * (0.2 + 0.4 * fres + 0.3 * stripe);
+          vec3 base = ramp > 0.5 ? heat(vS) : color;
+          // the ramp keeps its hue: highlights are lighter tints, not white
+          vec3 hi = ramp > 0.5 ? mix(base, vec3(1.0), 0.35) : vec3(1.0, 0.93, 0.82);
+          vec3 c = mix(base, hi, max(stripe * 0.55, fres * 0.5) * (ramp > 0.5 ? 0.6 : 1.0));
+          float a = vA * (0.2 + 0.4 * fres + 0.3 * stripe) + ramp * 0.12 * vS * vA;
           gl_FragColor = vec4(c, min(a, 0.85));
         }`,
     });

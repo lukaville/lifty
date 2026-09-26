@@ -43,8 +43,8 @@ export const test = base.extend({
         };
       }),
       // set the wind through the real controls
-      async setSpeed(mph) {
-        await page.locator("#speed").evaluate((el, v) => { el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); }, mph);
+      async setSpeed(mph) {   // the slider steps in km/h
+        await page.locator("#speed").evaluate((el, v) => { el.value = Math.round(v * 1.60934); el.dispatchEvent(new Event("input", { bubbles: true })); }, mph);
         await app.idle();
       },
       async setMinLift(v) {

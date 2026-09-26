@@ -24,7 +24,8 @@ test.describe("boot", () => {
     expect(s).toMatchObject({ site: "beachy-head", dirDeg: 150, speedMph: 12, minLift: 0.5, wing: "hg" });
     await expect(page.locator("#siteName")).toHaveText("Beachy Head");
     await expect(page.locator("#dirDeg")).toHaveText("150°");
-    await expect(page.locator("#spdVal")).toHaveText("12");
+    await expect(page.locator("#spdVal")).toHaveText("19");
+    await expect(page.locator("#spdMph")).toHaveText("12 mph");
     await expect(page.locator("#minLiftVal")).toHaveText("0.5");
     await expect(page.locator("#wing")).toHaveValue("hg");
   });
@@ -118,10 +119,10 @@ test.describe("controls", () => {
   test("wind slider updates readouts and recomputes the field", async ({ page, app }) => {
     const before = await app.state();
     await app.setSpeed(20);
-    await expect(page.locator("#spdVal")).toHaveText("20");
-    await expect(page.locator("#spdKmh")).toHaveText("32 km/h");
+    await expect(page.locator("#spdVal")).toHaveText("32");
+    await expect(page.locator("#spdMph")).toHaveText("20 mph");
     const after = await app.state();
-    expect(after.speedMph).toBe(20);
+    expect(after.speedMph).toBeCloseTo(20, 0);   // the slider steps in km/h
     expect(after.rotorSprites).not.toBe(before.rotorSprites);
   });
 
@@ -184,7 +185,7 @@ test("desktop panels collapse to their header, and stay collapsed after a reload
     await expect(page.locator(btn)).toHaveAttribute("aria-expanded", "false");
   }
   await expect(page.locator("#dial")).toBeHidden();
-  await expect(page.locator("#sheetSummary")).toHaveText(/Wind \d+° [NSEW]+ · \d+ mph/);
+  await expect(page.locator("#sheetSummary")).toHaveText(/Wind \d+° [NSEW]+ · \d+ km\/h/);
   await expect(page.locator("#status")).toBeVisible();            // the site card keeps its status
   await expect(page.locator("#siteChar")).toBeHidden();
   await expect(page.locator("#legend .row").first()).toBeHidden();

@@ -47,6 +47,8 @@ const SURFACE_REF_M = 30;
 // depth scales with √(U / 4 m/s) below 9 mph (strength fades linearly).
 const LIGHT_WIND_SIZE = (U) => Math.sqrt(Math.min(1, Math.max(0, U) / 4));
 export const WAKE_TI = 0.2, WAKE_DECAY_H = 4, GUST_CRITICAL = 0.8;
+// gusts (σ, m/s) at which rotor is coloured at full strength: peak gusts ≈ 9 m/s
+export const GUST_SEVERE = 3;
 export function rotorSeverity(s, d) {
   const ratio = s / windProfile(d);                  // along-wind speed / undisturbed
   return ratio <= 0 ? 1 : Math.max(0, (STAGNANT - ratio) / STAGNANT);
@@ -261,25 +263,35 @@ function lesRotor(A, B, agl, NN, base, U, fe, fn) {
   // severity per layer, smoothed horizontally: the scale a wing meets
   // turbulence at, and it removes the cell-to-cell flicker of thresholding
   // noisy gust statistics
+  // alongside, a strength that keeps rising past "unusable", for colouring:
+  // excess gusts from GUST_CRITICAL (0) to GUST_SEVERE (1)
+  const strengthL = [];
   const sev = agl.map((_, li) => {
-    const f = new Float32Array(NN);
+    const f = new Float32Array(NN), g = new Float32Array(NN);
     for (let k = 0; k < NN; k++) {
       const rev = mix("r", li, k);
       const core = Math.min(1, Math.max(0, (rev - 0.2) / 0.3)) * coreFac;      // reversed 20% → 50% of the time
       const t = mix("t", li, k), sl = TI_SURFACE * mix("s", li, k);
-      f[k] = Math.max(core, gustSeverity(U * Math.sqrt(Math.max(0, t * t - sl * sl))));
+      const excess = U * Math.sqrt(Math.max(0, t * t - sl * sl));
+      f[k] = Math.max(core, gustSeverity(excess));
+      // colour follows the gusts (they scale with the wind); recirculating air
+      // shows at least mid-orange however calm
+      g[k] = Math.max(0.5 * Math.min(1, rev / 0.5) * coreFac, Math.min(1, Math.max(0, (excess - GUST_CRITICAL) / (GUST_SEVERE - GUST_CRITICAL))));
     }
+    strengthL.push(blur(g));
     return blur(f);
   });
-  const intensity = new Float32Array(NN), depth = new Float32Array(NN);
+  const intensity = new Float32Array(NN), depth = new Float32Array(NN), strength = new Float32Array(NN);
   for (let k = 0; k < NN; k++) {
-    let worst = 0, topD = 0;
+    let worst = 0, topD = 0, strong = 0;
     for (let li = 0; li < agl.length; li++) {
       const v = sev[li][k];
       if (v > worst) worst = v;
+      if (strengthL[li][k] > strong) strong = strengthL[li][k];
       if (v >= 0.2) topD = agl[li];               // highest disturbed layer
     }
     intensity[k] = Math.min(1, worst);
+    strength[k] = Math.min(intensity[k], strong);
     depth[k] = topD > 0 ? topD + 5 : 0;
   }
   // smooth the rotor's depth too (weighted by its strength), so its top is a
@@ -287,7 +299,7 @@ function lesRotor(A, B, agl, NN, base, U, fe, fn) {
   const wd = blur(depth.map((d, k) => d * intensity[k])), wi = blur(intensity);
   const top = new Float32Array(NN), size = LIGHT_WIND_SIZE(U);
   for (let k = 0; k < NN; k++) top[k] = base[k] + (intensity[k] > 0 && wi[k] > 1e-4 ? size * wd[k] / wi[k] : 0);
-  return { intensity, top };
+  return { intensity, top, strength };
 }
 
 // One smoothing pass over an n×n grid: 1-2-1 across the wind, and along it

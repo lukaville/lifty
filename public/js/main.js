@@ -10,7 +10,7 @@ import { SiteBrowser } from "./sitebrowser.js";
 import { CfdStore, cfdFields } from "./cfd.js";
 
 // ---------------------------------------------------------------- URL options
-//   ?site=<slug>&dir=<deg>&mph=<n>&lift=<m/s>&wing=<key>   deep link to a state
+//   ?site=<slug>&dir=<deg>&kmh=<n>|mph=<n>&lift=<m/s>&wing=<key>   deep link to a state
 //   ?imagery=off                                          elevation colours only
 //   ?test[&seed=n]   deterministic mode for automated tests: seeded randomness,
 //                    no network imagery, animation advanced only by __view.settle()
@@ -31,6 +31,7 @@ const cfdStore = new CfdStore(PARAMS.get("flow") === "rans" ? "./data/cfd/" : ".
 // buildings are exaggerated by the same factor so the air around them lines up.
 const EXAG = 1.4;
 const MS_PER_MPH = 0.44704;
+const KMH_PER_MPH = 1.60934;
 const FT = 3.28084;
 const SKY_TOP = new THREE.Color(0x5d8fc9), SKY_HORIZON = new THREE.Color(0xc9dbea);
 
@@ -89,7 +90,7 @@ scene.add(siteGroup);
 // ---------------------------------------------------------------- state
 const app = {
   sites: [], site: null, terrain: null, phys: null, lc: null,
-  dirDeg: 330, speedMph: 14, minLift: 1.0,
+  dirDeg: 330, speedMph: 14 / KMH_PER_MPH, minLift: 0.5,
   wing: DEFAULT_WING,
   liftField: null, turbField: null, fineWake: null, net: null, stats: null,
   viz: null, veg: null, windsock: null, windArrow: null, terrainMesh: null,
@@ -453,15 +454,23 @@ function obstacleTurbNearTakeoff(spd) {
 }
 
 // ---------------------------------------------------------------- status / UI
+// Wind speeds show in km/h, with mph alongside in smaller text. The slider
+// steps in km/h; the model and the clubs' strength bands work in mph.
+const kmh = (mph) => Math.round(mph * KMH_PER_MPH);
+const speedText = (mph) => `${kmh(mph)} km/h <span class="alt">(${Math.round(mph)} mph)</span>`;
+function syncSpeedLabels() {
+  document.getElementById("spdVal").textContent = kmh(app.speedMph);
+  document.getElementById("spdMph").textContent = `${Math.round(app.speedMph)} mph`;
+  document.getElementById("spdVal2").textContent = kmh(app.speedMph);
+  document.getElementById("spdMph2").textContent = `${Math.round(app.speedMph)} mph`;
+}
 function updateStatus() {
   const s = app.site;
   document.getElementById("dirDeg").textContent = Math.round(app.dirDeg)+"°";
   document.getElementById("dirCard").textContent = cardinal(app.dirDeg);
-  document.getElementById("spdVal").textContent = app.speedMph;
-  document.getElementById("spdVal2").textContent = app.speedMph;
-  document.getElementById("spdKmh").textContent = Math.round(app.speedMph*1.60934)+" km/h";
+  syncSpeedLabels();
   document.getElementById("sheetSummary").textContent =
-    `Wind ${Math.round(app.dirDeg)}° ${cardinal(app.dirDeg)} · ${app.speedMph} mph`;
+    `Wind ${Math.round(app.dirDeg)}° ${cardinal(app.dirDeg)} · ${kmh(app.speedMph)} km/h`;
 
   const [a,bnd] = [s.windFrom[0], s.windFrom[1]];
   const on = inArc(app.dirDeg, a, bnd);
@@ -496,8 +505,8 @@ function updateStatus() {
       `sinks at ${wing.minSink} m/s or more and the air here isn't rising that fast.</span>`;
   }
   if (st2) {
-    bandEl.innerHTML += `<br><span class="dim">Wind on take-off ≈ ${Math.round(toMph)} mph (hand-held) · ` +
-      `${Math.round(aloft/MS_PER_MPH)} mph ${st2.windBand != null ? "in the lift band" : "at 200 ft"} (gradient + speed-up)</span>`;
+    bandEl.innerHTML += `<br><span class="dim">Wind on take-off ≈ ${speedText(toMph)} (hand-held) · ` +
+      `${speedText(aloft/MS_PER_MPH)} ${st2.windBand != null ? "in the lift band" : "at 200 ft"} (gradient + speed-up)</span>`;
   }
   bandEl.innerHTML += app.liftField?.source === "cfd"
     ? `<br><span class="dim">Airflow: ${app.liftField.les ? "FluidX3D LES" : "OpenFOAM"} simulation (${app.liftField.dirs.map((d) => Math.round(d) + "°").join(" / ")} blended)</span>`
@@ -689,7 +698,7 @@ async function loadSite(slug) {
 
 // ---------------------------------------------------------------- controls wiring
 const speedEl = document.getElementById("speed");
-speedEl.addEventListener("input", () => { app.speedMph = +speedEl.value; document.getElementById("spdVal2").textContent = app.speedMph; scheduleRecompute(); });
+speedEl.addEventListener("input", () => { app.speedMph = +speedEl.value / KMH_PER_MPH; syncSpeedLabels(); scheduleRecompute(); });
 
 const minLiftEl = document.getElementById("minLift");
 minLiftEl.value = app.minLift;
@@ -879,7 +888,8 @@ async function boot() {
   // deep-link state
   let changed = false;
   if (PARAMS.has("dir")) { app.dirDeg = ((Number(PARAMS.get("dir")) % 360) + 360) % 360; changed = true; }
-  if (PARAMS.has("mph")) { app.speedMph = Math.max(0, Math.min(35, Number(PARAMS.get("mph")))); speedEl.value = app.speedMph; changed = true; }
+  const linkMph = PARAMS.has("kmh") ? Number(PARAMS.get("kmh")) / KMH_PER_MPH : PARAMS.has("mph") ? Number(PARAMS.get("mph")) : null;
+  if (linkMph !== null && Number.isFinite(linkMph)) { app.speedMph = Math.max(0, Math.min(35, linkMph)); speedEl.value = kmh(app.speedMph); changed = true; }
   if (PARAMS.has("lift")) { app.minLift = Math.max(0, Math.min(5, Number(PARAMS.get("lift")))); minLiftEl.value = app.minLift; syncMinLift(); changed = true; }
   if (WINGS[PARAMS.get("wing")]) { app.wing = PARAMS.get("wing"); wingEl.value = app.wing; syncWingLabel(); changed = true; }
   if (changed) { drawDial(); recompute(); }

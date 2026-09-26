@@ -11,7 +11,9 @@ test("the deployed app boots with imagery, terrain, trees and airflow", async ({
   expect(s.soarable).toBe(true);
   expect(s.trees).toBeGreaterThan(10000);
   expect(s.rotorSprites).toBeGreaterThan(0);
-  await expect(page.locator("#status .txt")).toHaveText(/Good soaring window/);
+  // the default wind (14 km/h) is at the light end of the default site's range
+  await expect(page.locator("#status .txt")).toHaveText(/Good soaring window|Light/);
+  await expect(page.locator("#bandInfo")).toContainText("FluidX3D LES simulation");
   await expect(page.locator(".hint a")).toHaveAttribute("href", "https://github.com/lukaville/lifty");
 });
 
