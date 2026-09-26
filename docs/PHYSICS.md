@@ -5,6 +5,10 @@
 
 Everything is derived from the real elevation grid of each site, the LiDAR landcover, and the wind you set. All physics runs in the browser (`public/js/physics.js`) and uses true metres; the 3D view is vertically exaggerated 1.4× for clarity.
 
+By default the app shows **precomputed large-eddy simulations** of every site (see
+[Simulated airflow](#simulated-airflow)). The fast model below is used only with `?cfd=off`;
+the two are never mixed.
+
 Contents: ridge lift · terrain-following heights · wind gradient · local wind speed · sea surface · flow separation · net climb · rotor · vegetation · what is not modelled.
 
 ## Ridge lift — linear potential-flow theory
@@ -46,7 +50,14 @@ down to zero at the ground. Above it `w` does *not* keep growing, because in she
 `w` itself that decays as `e^{-|k|d}`. The **horizontal** wind a glider has to penetrate keeps
 growing with height. The app reports the resulting **wind on take-off** and the wind at 200 ft.
 Take-off wind is quoted at **~2 m, the height of a hand-held anemometer**, because the sites'
-strength bands come from readings like that.
+strength bands come from readings like that. With simulated fields it's derived from the
+wind at 30 m, brought down with the log law: the simulations' lowest cells sit inside their
+wall models and don't resolve the bottom few metres.
+
+**Penetration** ("too strong aloft") is judged against the median wind in the rising air, the
+air that climbs faster than the wing's best sink, clear of the surface and of rotor. That's
+where a pilot soars. The wind straight above the take-off crest is the most sped-up spot on
+the hill, and judging by it flags good soaring days as too strong.
 
 ### Local wind speed, the compression zone and the dead air at the foot
 Linear theory gives the streamline slope correctly, but it multiplies that slope by the
@@ -201,23 +212,8 @@ That rule is really about **sharp** obstacles.
 Trees, hedges and buildings (8 m grid) are sharp obstacles, so they follow it directly: a
 cavity and near wake at full strength to ~3 H, fading out by ~10 H.
 
-### Windward-face separation: cliff tops and feet
-Steep faces also separate on the **windward** side, where the lee-rotor test above never looks.
-This is forward-facing-step / escarpment flow:
-
-- **Crest-edge bubble.** Air coming up a steep face can't turn the sharp corner onto the top, so
-  it separates at the lip. A turbulent bubble sits on the top just behind the edge, with lift
-  still above and in front of it. The flow stays attached below about 30°; above that the bubble
-  grows to about 1 H long (`1 − e^{−(θ−30°)/15°}`) and 0.25 H high on a sheer cliff.
-- **Toe vortex.** On faces steeper than about 45°, the approaching air stalls against the foot,
-  about 0.6 H upwind and 0.35 H high.
-
 Rotor air doesn't count as usable lift, whatever its mean updraught: the band, the ceiling and
 the best climb exclude it.
-
-This is empirical, like the lee rotor: sizes come from escarpment and step studies, not from a
-solved flow. Check it with `node scripts/section.mjs beachy-head 180 16 pg-typical -1250 -480`,
-a section through the Beachy Head chalk cliffs.
 
 ## Vegetation and buildings in the airflow
 Trees, hedges and buildings come from the LiDAR landcover (see [DATA.md](DATA.md)) and act on the
@@ -237,6 +233,53 @@ air at two scales:
   obstacle's top, so a tree at the foot of a slope doesn't shelter the crest.
 - The status panel warns when tree or building turbulence reaches the launch area. It looks at
   take-off and the air flowing onto it, not the lee behind it.
+
+## Simulated airflow
+The fast model above is linear theory plus empirical rotor rules. By default the app instead
+shows a **large-eddy simulation** (FluidX3D lattice Boltzmann on the GPU, 10 m cells, neutral
+atmospheric boundary layer), solved offline for 16 wind directions per site. It is checked
+against steady RANS runs of the same cases (OpenFOAM, k-ω SST, 25 m cells). Set-up, validation
+and costs are in [cfd/README.md](../cfd/README.md).
+
+- **One model at a time.** The app uses the simulations for every site and direction, or,
+  with `?cfd=off`, the fast model everywhere. If simulation data is missing or fails to load,
+  it says so and shows no airflow; it never quietly substitutes the fast model.
+- **Directions.** The two stored directions either side of the wind you set are blended linearly
+  (`public/js/cfd.js`). The solutions are wind-speed independent, so velocities are stored as
+  fractions of the 10 m reference wind and multiplied by the wind you set.
+- **Wind speed calibration.** At 10 m cells the LES terrain is a staircase whose steps act as
+  extra roughness. Its boundary layer comes out too slow near the ground and 10–16% too fast
+  at soaring height for a given 10 m wind. Each case's velocities are therefore scaled by one
+  factor so its approach wind at 50–180 m matches the OpenFOAM case, whose terrain-following
+  mesh follows the log law. The factors are 0.76–0.92, median 0.855, about the same at every
+  site. The flow pattern (lift, separation, gusts) is the LES's own.
+- **Lift** is the simulated mean vertical wind, sampled on the same terrain-following layers as
+  the fast model; net climb, the band and the ceiling are computed the same way.
+- **Rotor** comes straight from the resolved flow:
+  - the **core**: air reversed more than 20–50% of the time;
+  - the **turbulent wake**: gusts clearly above what the local wind and ground roughness produce
+    (turbulence beyond 20% of the local wind). It counts from σ = 0.8 m/s, when peak gusts of
+    about 3σ reach a fifth of a paraglider's trim speed. Gusts scale with the wind, so the rotor
+    reaches further, and is stronger, in stronger wind; below 9 mph it weakens and shrinks
+    toward nothing in calm air.
+
+  Rotor is smoothed over about 80 m across the wind, and only downstream along it, never
+  across a change in ground height. That keeps it off the attached air approaching a cliff edge.
+- **Take-off wind** comes from the simulated wind at 30 m, brought down to 2 m with the log law
+  (the lowest cells sit inside the wall model). **Penetration** is judged against the median wind
+  in the rising air (see above).
+- **Trees and buildings** enter the simulation as raised ground (displacement) and surface
+  roughness only. Wakes behind individual tree lines and buildings still come from the
+  obstacle-wake rule, drawn on top in both modes.
+- **Known limits.** The atmosphere is neutral, so rotor in light wind, when stability and
+  thermals dominate, is indicative only. 10 m cells round off features smaller than about
+  30 m.
+
+The steady RANS (OpenFOAM) results can be viewed locally with `?flow=rans` after packing them
+into `public/data/cfd/`; they aren't deployed. When they are shown, rotor uses a wake rule
+(σ = U · 0.2 · e^(−x / 4H) past the recirculation core, from the Perdigão measurements,
+[Menke et al. 2019](https://acp.copernicus.org/articles/19/2713/2019/)), because steady RANS
+doesn't resolve gusts.
 
 ### Not modelled
 Thermals, stability (inversions, lee waves), sea-breeze fronts, gusts and convergence are not

@@ -59,8 +59,9 @@ dependencies, so everything physical is tested in Node, and fast.
 
 ## Adding a site
 
-A site is one entry in `public/data/sites.json` plus two generated data files. Plan on about 15
-minutes, most of it checking that the result makes sense.
+A site is one entry in `public/data/sites.json`, two generated data files, and the site's
+airflow simulations. Preparing the data takes about 15 minutes, most of it checking that the
+result makes sense. The simulations take a few hours on a GPU.
 
 ### 1. Gather the information
 
@@ -137,13 +138,31 @@ This writes `public/data/terrain/<slug>.json` and `public/data/landcover/<slug>.
   with no trees or buildings. The app still works, with coarser terrain. Plugging in another
   country's open LiDAR is a welcome contribution: see [docs/DATA.md](docs/DATA.md).
 
+### 3b. Simulate the airflow
+
+The app shows simulated airflow for every site. A site without simulation results shows an
+error, unless you open it with `?cfd=off`, which uses the fast built-in model. Checking the new
+site with `?cfd=off` is fine; to ship it, run the simulations (details in
+[cfd/README.md](cfd/README.md)):
+
+```bash
+cfd/fluidx3d/build.sh                                  # once: FluidX3D, needs an OpenCL GPU
+cfd/lbm-batch.sh 2 <slug>                              # LES, 16 directions: ~1.5 h on an RTX 3090
+cfd/batch.sh 4 5 <slug>                                # OpenFOAM, 16 directions (Docker): for calibration
+node cfd/pack.mjs cfd/runs/_lbm --calibrate cfd/runs/_bins   # -> public/data/les/
+```
+
+If you have no suitable GPU, open the pull request with the site data only and say so; a
+maintainer can run the simulations.
+
 ### 4. Check that it makes sense
 
 This is the important step. The model is only as good as its data.
 
 ```bash
 npm run serve
-open "http://127.0.0.1:8123/?site=<slug>"             # the new site, default wind
+open "http://127.0.0.1:8123/?site=<slug>"             # the new site, default wind (simulated)
+open "http://127.0.0.1:8123/?site=<slug>&cfd=off"     # the fast model, for comparison
 node scripts/section.mjs <slug> <windFromDeg> 14      # ASCII cross-section of the lift band
 npm run analyse-lift                                  # ceilings and climbs for every site
 ```

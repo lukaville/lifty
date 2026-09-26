@@ -3,7 +3,7 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { physics, syntheticTerrain, syntheticLandcover, shapes, wind, fieldAt } from "../helpers/terrain.mjs";
 
-const { SitePhysics, WINGS, MIN_CLEARANCE, USABLE_CLIMB, reattachH, ROTOR_RECOVERY_H, windProfile, crestBubbleH } = physics;
+const { SitePhysics, WINGS, MIN_CLEARANCE, USABLE_CLIMB, reattachH, ROTOR_RECOVERY_H, windProfile } = physics;
 const EN_B = WINGS["pg-typical"];
 
 // shared fixtures (building SitePhysics is the expensive part)
@@ -195,55 +195,20 @@ describe("lee rotor", () => {
   });
 });
 
-describe("windward-face separation (cliff tops and feet)", () => {
+describe("rotor air is not usable lift", () => {
   const H = 100;
-  // plateau at +H to the east of a face rising toward +x; wind from the west blows up the face
-  const faceUp = (deg) => (x) => {
-    const run = H / Math.tan((deg * Math.PI) / 180);
-    return x < -run ? 20 : x > 0 ? 20 + H : 20 + H * (1 + x / run);
-  };
-  const setup = (deg, mph = 16) => {
-    const p = new SitePhysics(syntheticTerrain(faceUp(deg)));
-    const w = wind(270, mph), T = p.computeTurbulence(w.fe, w.fn, w.U);
-    return { p, T, at: (x) => p._sample(T.intensity, x, 0), top: (x) => p._sample(T.top, x, 0) };
-  };
+  // plateau at +H to the east of a 70° face; wind from the east blows off the edge
+  const drop = (x) => { const run = H / Math.tan((70 * Math.PI) / 180); return x < -run ? 20 : x > 0 ? 20 + H : 20 + H * (1 + x / run); };
 
-  test("crest bubble length follows face steepness: none below 30°, ~1 H for a sheer cliff", () => {
-    assert.equal(crestBubbleH(Math.tan((25 * Math.PI) / 180)), 0);
-    assert.ok(crestBubbleH(Math.tan((45 * Math.PI) / 180)) > 0.5);
-    assert.ok(crestBubbleH(1e6) > 0.95 && crestBubbleH(1e6) <= 1);
-  });
-
-  test("steep cliff into the wind: rotor on the top just behind the lip, gone further back", () => {
-    const { at, top } = setup(70);
-    assert.ok(at(0.3 * H) > 0.4, `just behind the lip: ${at(0.3 * H)}`);
-    assert.ok(top(0.3 * H) > 20 + H + 0.1 * H && top(0.3 * H) < 20 + H + 0.4 * H, `bubble top ${top(0.3 * H)}`);
-    assert.ok(at(2.5 * H) < 0.05, `well back on the plateau: ${at(2.5 * H)}`);
-  });
-
-  test("gentle slope into the wind (25°): flow stays attached, no crest rotor", () => {
-    const { at } = setup(25);
-    assert.ok(at(0.3 * H) < 0.05, `${at(0.3 * H)}`);
-  });
-
-  test("toe vortex at the foot of a steep face, none at the foot of a gentle one", () => {
-    const steep = setup(70), gentle = setup(30);
-    const run = (deg) => H / Math.tan((deg * Math.PI) / 180);
-    assert.ok(steep.at(-run(70) - 0.2 * H) > 0.2, `steep toe: ${steep.at(-run(70) - 0.2 * H)}`);
-    assert.ok(steep.at(-run(70) - 1.2 * H) < 0.05, "gone well upwind of the foot");
-    assert.ok(gentle.at(-run(30) - 0.2 * H) < 0.05, `gentle toe: ${gentle.at(-run(30) - 0.2 * H)}`);
-  });
-
-  test("lift inside a rotor bubble is not usable", () => {
-    const { p, T } = setup(70);
-    const w = wind(270, 16), F = p.computeLift(w.u, w.v);
-    const withRotor = p.netClimb(F, EN_B, USABLE_CLIMB, T), without = p.netClimb(F, EN_B);
-    let masked = 0;
-    for (let li = 0; li < F.agl.length; li++) for (let k = 0; k < withRotor[li].length; k++) {
-      if (without[li][k] > 0 && withRotor[li][k] === -Infinity) masked++;
-      if (T.intensity[k] >= 0.35 && F.base[k] + F.agl[li] < T.top[k]) assert.equal(withRotor[li][k], -Infinity);
+  test("air inside a rotor bubble is excluded from the band", () => {
+    const p = new SitePhysics(syntheticTerrain(drop));
+    const w = wind(90, 16), T = p.computeTurbulence(w.fe, w.fn, w.U), F = p.computeLift(w.u, w.v);
+    const net = p.netClimb(F, EN_B, USABLE_CLIMB, T);
+    let inRotor = 0;
+    for (let li = 0; li < F.agl.length; li++) for (let k = 0; k < net[li].length; k++) {
+      if (T.intensity[k] >= 0.35 && F.base[k] + F.agl[li] < T.top[k]) { inRotor++; assert.equal(net[li][k], -Infinity); }
     }
-    assert.ok(masked >= 0);
+    assert.ok(inRotor > 0, "the lee of a 70° drop has a rotor");
   });
 });
 

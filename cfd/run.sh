@@ -7,6 +7,7 @@ set -euo pipefail
 CASE=$(cd "$1" && pwd)
 NP=${2:-4}
 IMAGE=opencfd/openfoam-default:2512
+DOCKER=${DOCKER:-docker}            # e.g. DOCKER="sudo docker" where the user is not in the docker group
 sed -i.bak "s/^numberOfSubdomains .*/numberOfSubdomains ${NP};/" "$CASE/system/decomposeParDict" && rm -f "$CASE/system/decomposeParDict.bak"
 
 steps='
@@ -27,7 +28,7 @@ if command -v simpleFoam >/dev/null 2>&1; then
   CASE="$CASE" NP="$NP" bash -c "$steps"
 else
   RUNS=$(dirname "$(dirname "$CASE")")
-  docker run --rm --cpus "$NP" -v "$RUNS":/runs -e CASE="/runs/${CASE#"$RUNS"/}" -e NP="$NP" \
+  $DOCKER run --rm --cpus "$NP" -v "$RUNS":/runs -e CASE="/runs/${CASE#"$RUNS"/}" -e NP="$NP" \
     -e OMPI_ALLOW_RUN_AS_ROOT=1 -e OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1 \
     "$IMAGE" bash -c "source /usr/lib/openfoam/openfoam2512/etc/bashrc; $steps"
 fi

@@ -11,7 +11,7 @@
     "ceilingFt": 493,
     "maxClimb": 2.27
    },
-   "rotorCover": 0.0246,
+   "rotorCover": 0.0234,
    "wakeCover": 0.0507
   },
   "14mph": {
@@ -25,7 +25,7 @@
     "ceilingFt": 736,
     "maxClimb": 3.5
    },
-   "rotorCover": 0.0289,
+   "rotorCover": 0.0273,
    "wakeCover": 0.1082
   },
   "20mph": {
@@ -39,7 +39,7 @@
     "ceilingFt": 744,
     "maxClimb": 4.96
    },
-   "rotorCover": 0.0316,
+   "rotorCover": 0.0299,
    "wakeCover": 0.1526
   }
  },
@@ -55,7 +55,7 @@
     "ceilingFt": 504,
     "maxClimb": 2.05
    },
-   "rotorCover": 0.0003,
+   "rotorCover": 0.0001,
    "wakeCover": 0.0284
   },
   "14mph": {
@@ -69,7 +69,7 @@
     "ceilingFt": 669,
     "maxClimb": 3.19
    },
-   "rotorCover": 0.0005,
+   "rotorCover": 0.0001,
    "wakeCover": 0.0637
   },
   "20mph": {
@@ -83,7 +83,7 @@
     "ceilingFt": 672,
     "maxClimb": 4.54
    },
-   "rotorCover": 0.001,
+   "rotorCover": 0.0005,
    "wakeCover": 0.0853
   }
  },
@@ -99,7 +99,7 @@
     "ceilingFt": 288,
     "maxClimb": 1.22
    },
-   "rotorCover": 0.0517,
+   "rotorCover": 0.0501,
    "wakeCover": 0.0472
   },
   "14mph": {
@@ -113,7 +113,7 @@
     "ceilingFt": 480,
     "maxClimb": 2.05
    },
-   "rotorCover": 0.0636,
+   "rotorCover": 0.0609,
    "wakeCover": 0.101
   },
   "20mph": {
@@ -127,7 +127,7 @@
     "ceilingFt": 511,
     "maxClimb": 3.03
    },
-   "rotorCover": 0.0707,
+   "rotorCover": 0.0677,
    "wakeCover": 0.1369
   }
  },
@@ -143,7 +143,7 @@
     "ceilingFt": 461,
     "maxClimb": 2.7
    },
-   "rotorCover": 0.0354,
+   "rotorCover": 0.0009,
    "wakeCover": 0.0076
   },
   "14mph": {
@@ -157,7 +157,7 @@
     "ceilingFt": 683,
     "maxClimb": 4.1
    },
-   "rotorCover": 0.0397,
+   "rotorCover": 0.002,
    "wakeCover": 0.0214
   },
   "20mph": {
@@ -171,7 +171,7 @@
     "ceilingFt": 713,
     "maxClimb": 5.83
    },
-   "rotorCover": 0.0421,
+   "rotorCover": 0.0035,
    "wakeCover": 0.0313
   }
  },
@@ -187,7 +187,7 @@
     "ceilingFt": 489,
     "maxClimb": 2.07
    },
-   "rotorCover": 0.0023,
+   "rotorCover": 0.0009,
    "wakeCover": 0.0471
   },
   "14mph": {
@@ -201,7 +201,7 @@
     "ceilingFt": 731,
     "maxClimb": 3.25
    },
-   "rotorCover": 0.0047,
+   "rotorCover": 0.0023,
    "wakeCover": 0.1046
   },
   "20mph": {
@@ -215,7 +215,7 @@
     "ceilingFt": 747,
     "maxClimb": 4.79
    },
-   "rotorCover": 0.0069,
+   "rotorCover": 0.0045,
    "wakeCover": 0.1424
   }
  },
@@ -231,7 +231,7 @@
     "ceilingFt": 449,
     "maxClimb": 1.92
    },
-   "rotorCover": 0.002,
+   "rotorCover": 0.0001,
    "wakeCover": 0.0107
   },
   "14mph": {
@@ -245,7 +245,7 @@
     "ceilingFt": 654,
     "maxClimb": 3.02
    },
-   "rotorCover": 0.0029,
+   "rotorCover": 0.0005,
    "wakeCover": 0.0298
   },
   "20mph": {
@@ -259,7 +259,7 @@
     "ceilingFt": 678,
     "maxClimb": 4.34
    },
-   "rotorCover": 0.0036,
+   "rotorCover": 0.0012,
    "wakeCover": 0.0445
   }
  },
@@ -275,7 +275,7 @@
     "ceilingFt": 391,
     "maxClimb": 1.89
    },
-   "rotorCover": 0.0083,
+   "rotorCover": 0.0079,
    "wakeCover": 0.037
   },
   "14mph": {
@@ -289,7 +289,7 @@
     "ceilingFt": 564,
     "maxClimb": 3
    },
-   "rotorCover": 0.0106,
+   "rotorCover": 0.0099,
    "wakeCover": 0.0943
   },
   "20mph": {
@@ -303,7 +303,7 @@
     "ceilingFt": 599,
     "maxClimb": 4.36
    },
-   "rotorCover": 0.0118,
+   "rotorCover": 0.0112,
    "wakeCover": 0.1434
   }
  },
@@ -319,7 +319,7 @@
     "ceilingFt": 168,
     "maxClimb": 1.26
    },
-   "rotorCover": 0.01,
+   "rotorCover": 0.0001,
    "wakeCover": 0.0088
   },
   "14mph": {
@@ -333,7 +333,7 @@
     "ceilingFt": 257,
     "maxClimb": 2.13
    },
-   "rotorCover": 0.0128,
+   "rotorCover": 0.0014,
    "wakeCover": 0.0562
   },
   "20mph": {
@@ -347,7 +347,7 @@
     "ceilingFt": 313,
     "maxClimb": 3.22
    },
-   "rotorCover": 0.0142,
+   "rotorCover": 0.0024,
    "wakeCover": 0.1091
   }
  }

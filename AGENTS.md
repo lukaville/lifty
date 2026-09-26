@@ -73,7 +73,8 @@ or `public/data/`. Run the browser tests after touching `public/js/main.js`, `ai
 | Data pipeline | `scripts/fetch-terrain.mjs`, `scripts/fetch-surface.mjs`, `scripts/lib/` |
 | Site metadata | `public/data/sites.json` (schema: CONTRIBUTING.md → Adding a site) |
 | Test helpers (synthetic terrain, section renderer) | `tests/helpers/` |
-| OpenFOAM simulation pipeline (mesh, run, extract, compare) | `cfd/` (see `cfd/README.md`) |
+| OpenFOAM (RANS) and FluidX3D (GPU LES) simulation pipelines | `cfd/` (see `cfd/README.md`) |
+| Loading and blending the OpenFOAM results in the app | `public/js/cfd.js`, `public/data/cfd/` |
 
 ## Gotchas
 
@@ -95,6 +96,10 @@ or `public/data/`. Run the browser tests after touching `public/js/main.js`, `ai
 - **Terrain-following layers.** Lift fields are sampled at heights above the *effective*
   surface: ground, raised by canopy displacement and filled over separation bubbles. That is
   `field.base`, not the DEM.
+- **Two flow models.** Sites listed in `public/data/cfd/index.json` use precomputed OpenFOAM
+  fields; everything else uses `physics.js`. Test mode uses `physics.js` unless `?cfd=on`, so
+  screenshot baselines don't change when new simulation results land. Compare the two with
+  `QUERY=cfd=on` / `QUERY=cfd=off` on `scripts/snapshot.mjs`.
 - **Data pipeline caches.** Everything downloaded goes to `.cache/`. Outside England the
   Environment Agency service returns zeros, not nodata; `readTiff` treats exact 0 as missing.
 - **Screenshot baselines are per platform.** macOS baselines are committed; Linux ones come

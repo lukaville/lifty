@@ -39,6 +39,38 @@ test.describe("boot", () => {
   });
 });
 
+test.describe("simulated flow", () => {
+  test("a site with simulation results uses them; ?cfd=off uses the fast model", async ({ page, app }) => {
+    await app.open("site=beachy-head&dir=140&mph=14&cfd=on");
+    // the first view is already the simulation (no flash of the fast model)
+    expect(await page.evaluate(() => window.__view.app.liftField.source)).toBe("cfd");
+    await expect(page.locator("#bandInfo")).toContainText("FluidX3D LES simulation (135° / 158° blended)");
+    expect((await app.state()).bandCells).toBeGreaterThan(50);
+    await app.open("site=beachy-head&dir=140&mph=14&cfd=off");
+    await expect(page.locator("#bandInfo")).toContainText("Airflow: fast model");
+  });
+
+  test("missing simulation data is an error, never a silent fall-back to the fast model", async ({ page, app, problems }) => {
+    problems.allow.push(/Failed to load resource: .*404/);      // the deliberately missing file
+    // a site with no results
+    await page.route("**/data/les/index.json", (r) => r.fulfill({ json: {} }));
+    await app.open("site=beachy-head&dir=140&cfd=on");
+    await expect(page.locator("#loading.error")).toContainText("no simulation results for this site");
+    expect(await page.evaluate(() => window.__view.app.liftField)).toBeNull();
+    await page.unroute("**/data/les/index.json");
+    // a direction file that fails to load
+    await page.route("**/data/les/beachy-head/d135.bin", (r) => r.fulfill({ status: 404, body: "" }));
+    await app.open("site=beachy-head&dir=140&cfd=on");
+    await expect(page.locator("#loading.error")).toContainText("d135.bin failed to load");
+    expect(await page.evaluate(() => window.__view.app.liftField)).toBeNull();
+    // and it recovers once the data is there
+    await page.unroute("**/data/les/beachy-head/d135.bin");
+    await app.open("site=beachy-head&dir=140&cfd=on");
+    await expect(page.locator("#loading")).toBeHidden();
+    await expect(page.locator("#bandInfo")).toContainText("FluidX3D LES simulation");
+  });
+});
+
 test("page metadata, icons, manifest and social image are in place", async ({ page, app, request }) => {
   await app.open();
   await expect(page).toHaveTitle(/Lifty/);

@@ -18,7 +18,7 @@ const [src, out] = process.argv.slice(2);
 if (!src || !out) { console.error("usage: preview-sanitize.mjs <src> <out>"); process.exit(2); }
 
 const ALLOWED = new Set([".html", ".js", ".mjs", ".css", ".json", ".webmanifest", ".txt",
-  ".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico", ".woff", ".woff2"]);
+  ".png", ".bin", ".jpg", ".jpeg", ".webp", ".svg", ".ico", ".woff", ".woff2"]);
 const DROP = new Set(["_worker.js", "_redirects", "_headers", "_routes.json"]);
 const MAX_FILES = 2000;
 const MAX_FILE = 25 * 1024 * 1024;       // Cloudflare Pages per-file limit

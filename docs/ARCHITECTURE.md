@@ -67,6 +67,7 @@ lifty/
 │   ├── js/
 │   │   ├── main.js               # scene, terrain, lighting, UI, status, URL options, test hooks
 │   │   ├── physics.js            # FFT lift solver, polars, rotor + obstacle-wake models
+│   │   ├── cfd.js                # loads + blends the precomputed simulations; rotor from them
 │   │   ├── airviz.js             # tracers, lift-band lens, rotor volumes
 │   │   ├── vegetation.js         # instanced trees, bushes, buildings, windsock
 │   │   ├── sitebrowser.js        # sites panel: search, favourites, map
@@ -77,7 +78,8 @@ lifty/
 │   ├── data/
 │   │   ├── sites.json            # site metadata (schema: CONTRIBUTING.md)
 │   │   ├── terrain/<slug>.json   # terrain grids (physics 128², render 512²)
-│   │   └── landcover/<slug>.*    # obstacle raster (.png) + 3D instances (.json)
+│   │   ├── landcover/<slug>.*    # obstacle raster (.png) + 3D instances (.json)
+│   │   └── les/<slug>/dNNN.bin   # simulated flow per wind direction (cfd/pack.mjs) + index.json
 │   └── vendor/                   # three.js + OrbitControls, Leaflet
 ├── scripts/
 │   ├── fetch-terrain.mjs         # terrarium DEM (sea floor, fallback)
@@ -104,6 +106,8 @@ lifty/
 |---|---|
 | `?site=<slug>&dir=<deg>&mph=<n>&lift=<m/s>&wing=<key>` | open at that state (values are clamped; unknown ones are ignored) |
 | `?imagery=off` | elevation colours instead of satellite imagery |
+| `?cfd=off` / `?cfd=on` | the fast built-in model everywhere / the simulations (on by default; off in `?test` unless `cfd=on`). Never mixed: missing simulation data is an error |
+| `?flow=rans` | the OpenFOAM results from `data/cfd/` instead of the LES (local comparison only; not deployed) |
 | `?test[&seed=n]` | deterministic mode for tests: seeded randomness, no imagery, render loop stopped |
 
 `window.__view` exposes the app for tests and debugging:

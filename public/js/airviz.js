@@ -397,8 +397,10 @@ export class AirViz {
     const p = this.phys;
     if (this.turb) {
       const I = this.turb.intensity, n = p.n;
-      this.shells.push(this._shell(n, p.cell, (k) => p.hs[k], (k) => this.turb.top[k], (k) => I[k], 0.12,
-        [1.0, 0.32, 0.12], 0));
+      // fades in from nothing (no opacity floor), so weak rotor in light wind
+      // shows faintly instead of popping in at the threshold
+      this.shells.push(this._shell(n, p.cell, (k) => p.hs[k], (k) => this.turb.top[k], (k) => I[k], 0.03,
+        [1.0, 0.32, 0.12], 0, 1, 0));
     }
     if (this.fine) {
       const W = this.fine, f = this.speedFac;
@@ -409,7 +411,7 @@ export class AirViz {
   }
 
   // n×n grid (cell centres at −W/2 + (i+offset)·cell) -> dome mesh over [ground, top]
-  _shell(n, cell, ground, top, inten, thr, rgb, offset, opacity = 1) {
+  _shell(n, cell, ground, top, inten, thr, rgb, offset, opacity = 1, floor = 0.35) {
     const half = this.phys.windowM / 2, NN = n * n;
     const pos = new Float32Array(NN * 3), alpha = new Float32Array(NN), hgt = new Float32Array(NN);
     const on = new Uint8Array(NN);
@@ -421,7 +423,7 @@ export class AirViz {
         pos[k * 3] = -half + (i + offset) * cell;
         pos[k * 3 + 1] = this.worldY(h);
         pos[k * 3 + 2] = -(-half + (j + offset) * cell);
-        alpha[k] = on[k] ? (0.35 + 0.65 * Math.min(1, (inten(k) - thr) / 0.5)) * opacity : 0;
+        alpha[k] = on[k] ? (floor + (1 - floor) * Math.min(1, (inten(k) - thr) / 0.5)) * opacity : 0;
         hgt[k] = h - g;
       }
     }

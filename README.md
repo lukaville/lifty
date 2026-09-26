@@ -17,7 +17,9 @@ Pick a site and set the wind. Lifty models the airflow over the real terrain and
 - rotor behind hills, trees and buildings;
 - how the site suits the current wind.
 
-It runs entirely in the browser, on desktop and phone.
+It runs entirely in the browser, on desktop and phone. The airflow comes from
+[large-eddy simulations](cfd/README.md) of each site, run offline on a GPU with FluidX3D and
+checked against OpenFOAM. A fast built-in model is available with `?cfd=off`.
 
 The [latest build](https://liftyautopush.pages.dev) is deployed automatically from `main`.
 

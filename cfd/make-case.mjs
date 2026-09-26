@@ -22,8 +22,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const { decodePNG } = await import(path.join(ROOT, "scripts/lib/png.mjs"));
-const { decodeLandcover } = await import(path.join(ROOT, "public/js/landcover.js"));
+const { loadSite, flowFrame, taper: taperAt, farField: farFieldOf } = await import("./lib/site.mjs");
 
 // ------------------------------------------------------------------ options
 const args = process.argv.slice(2);
@@ -43,64 +42,12 @@ const UREF = 10, ZREF = 10, Z0_INLET = 0.05;
 const OUT = opt("out", path.join(ROOT, "cfd/runs"));
 
 // ------------------------------------------------------------------ terrain + landcover
-const W = 3200, HALF = W / 2;
-let terrain, lc = null, slug;
-if (src.endsWith(".json")) {
-  terrain = JSON.parse(fs.readFileSync(src, "utf8"));
-  slug = path.basename(src, ".json");
-  const lcFile = src.replace(/\.json$/, ".landcover.png");
-  if (fs.existsSync(lcFile)) { const png = decodePNG(fs.readFileSync(lcFile)); lc = decodeLandcover(png.data, png.width, W, png.channels); }
-} else {
-  slug = src;
-  terrain = JSON.parse(fs.readFileSync(path.join(ROOT, `public/data/terrain/${slug}.json`), "utf8"));
-  const lcFile = path.join(ROOT, `public/data/landcover/${slug}.png`);
-  if (fs.existsSync(lcFile)) { const png = decodePNG(fs.readFileSync(lcFile)); lc = decodeLandcover(png.data, png.width, W, png.channels); }
-}
-const R = terrain.render || terrain;
-const RN = R.n, RC = W / (RN - 1);
-const rh = (() => {
-  const raw = Buffer.from(R.heights_b64, "base64"), h = new Float32Array(RN * RN);
-  for (let k = 0; k < RN * RN; k++) h[k] = R.offset + raw.readUInt16LE(2 * k) * R.scale;
-  return h;
-})();
-const clampI = (v, n) => Math.max(0, Math.min(n - 1, v));
-// bare surface the air flows over: ground, or the sea surface offshore
-function ground(e, n) {
-  const fi = (e + HALF) / RC, fj = (n + HALF) / RC;
-  const i0 = clampI(Math.floor(fi), RN - 1), j0 = clampI(Math.floor(fj), RN - 1);
-  const i1 = Math.min(RN - 1, i0 + 1), j1 = Math.min(RN - 1, j0 + 1);
-  const tx = Math.max(0, Math.min(1, fi - i0)), ty = Math.max(0, Math.min(1, fj - j0));
-  const g = (i, j) => Math.max(0, rh[j * RN + i]);
-  return g(i0, j0) * (1 - tx) * (1 - ty) + g(i1, j0) * tx * (1 - ty) + g(i0, j1) * (1 - tx) * ty + g(i1, j1) * tx * ty;
-}
-// landcover at (e, n), averaged over a footprint of radius r (m)
-function cover(e, n, r) {
-  if (!lc) return { disp: 0, z0: ground(e, n) <= 0.2 ? 0.0002 : 0.03 };
-  const c = lc.cell, rr = Math.max(0, Math.round(r / c));
-  const ci = Math.floor((e + HALF) / c), cj = Math.floor((n + HALF) / c);
-  let disp = 0, lnz0 = 0, cnt = 0;
-  for (let dj = -rr; dj <= rr; dj++) for (let di = -rr; di <= rr; di++) {
-    const i = clampI(ci + di, lc.n), j = clampI(cj + dj, lc.n), q = j * lc.n + i;
-    const cls = lc.cls[q], h = lc.height[q], cv = lc.cover[q];
-    disp += 0.7 * h * cv;
-    // roughness length per class (Wieringa-type values); sea is aerodynamically smooth
-    const z0 = cls === 2 ? Math.min(2, Math.max(0.5, 0.1 * h)) : cls === 3 ? 0.5 : cls === 1 ? 0.1
-      : ground(-HALF + (i + 0.5) * c, -HALF + (j + 0.5) * c) <= 0.2 ? 0.0002 : 0.03;
-    lnz0 += Math.log(z0); cnt++;
-  }
-  return { disp: disp / cnt, z0: Math.exp(lnz0 / cnt) };   // log-average: how roughness combines
-}
+const { slug, ground, cover } = loadSite(src);
 
 // ------------------------------------------------------------------ rotated frame
 // X along the flow, Y to its left; site coords e = X fe − Y fn, n = X fn + Y fe
-const b = (DIR * Math.PI) / 180, fe = -Math.sin(b), fn = -Math.cos(b);
-const toSite = (X, Y) => [X * fe - Y * fn, X * fn + Y * fe];
-const taper = (X, Y) => {
-  const r = Math.max(Math.abs(X), Math.abs(Y));
-  if (r <= CORE) return 1;
-  if (r >= FLAT) return 0;
-  return 0.5 + 0.5 * Math.cos((Math.PI * (r - CORE)) / (FLAT - CORE));
-};
+const { fe, fn, toSite } = flowFrame(DIR);
+const taper = (X, Y) => taperAt(X, Y, CORE, FLAT);
 
 // horizontal node coordinates: uniform CORE_DX over the window (and a margin),
 // growing geometrically toward the domain edges
@@ -116,14 +63,9 @@ const NX = XS.length - 1, NY = YS.length - 1;
 const dx = CORE_DX, dy = CORE_DX;
 const surf = new Float64Array((NX + 1) * (NY + 1));
 const colZ0 = new Float64Array(NX * NY);
-// Outside the window the ground relaxes to a flat far field. Its level follows
-// the terrain on each side — the mean ground along the upwind edge of the core
-// (HUP: sea level for an onshore wind) and along the downwind edge (HDOWN) —
-// blended smoothly in between, so the inlet is flat at HUP and no artificial
-// ramp is created (e.g. out at sea at a coastal site).
-const edgeMean = (X) => { let sum = 0; for (let q = 0; q < 64; q++) { const [e, n] = toSite(X, -CORE + (2 * CORE * q) / 63); sum += ground(e, n); } return sum / 64; };
-const HUP = edgeMean(-CORE), HDOWN = edgeMean(CORE);
-const farField = (X) => { const t = Math.max(0, Math.min(1, (X + CORE) / (2 * CORE))); const sm = t * t * (3 - 2 * t); return HUP + (HDOWN - HUP) * sm; };
+// Outside the window the ground relaxes to a flat far field (see lib/site.mjs)
+const FF = farFieldOf(ground, toSite, CORE);
+const HUP = FF.hUp, HDOWN = FF.hDown, farField = FF.at;
 const HREF = HUP;                                   // the inlet's ground level
 for (let j = 0; j <= NY; j++) for (let i = 0; i <= NX; i++) {
   const X = XS[i], Y = YS[j], [e, n] = toSite(X, Y);

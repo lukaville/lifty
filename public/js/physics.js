@@ -87,19 +87,6 @@ export const reattachH = (tanLee) => {
   return deg <= 18 ? 0 : 6.5 * (1 - Math.exp(-(deg - 18) / 12));
 };
 export const ROTOR_RECOVERY_H = 4;
-// Separation on the WINDWARD side of steep faces (forward-facing step /
-// escarpment flow). Two bubbles, both sized by the face height H:
-//   · crest-edge bubble on top, just behind the lip, where the flow can't turn
-//     the sharp corner: none below ~30° (flow stays attached over the crest),
-//     growing to ~1 H long and ~0.25 H high for a sheer cliff;
-//   · toe vortex at the foot of the face, where the approaching air stalls:
-//     only for faces steeper than ~45°, ~0.6 H upwind and ~0.35 H high.
-// Empirical, from escarpment / forward-facing-step studies — not a solved flow.
-export const crestBubbleH = (tanFace) => {
-  const deg = (Math.atan(tanFace) * 180) / Math.PI;
-  return deg <= 30 ? 0 : 1 - Math.exp(-(deg - 30) / 15);
-};
-const TOE_MIN_DEG = 45, TOE_LENGTH_H = 0.6, TOE_HEIGHT_H = 0.35, CREST_HEIGHT_H = 0.25;
 const WAKE_MAX_M = 1800;
 // a lee drop this high (m) produces full-strength rotor; smaller banks less
 const ROTOR_FULL_H = 50;
@@ -434,72 +421,8 @@ export class SitePhysics {
       }
     }
     const env = { top, dist, rotorI, rotorTop };
-    this._faceSeparation(fe, fn, env);
     this._wakeCache.set(key, env);
     return env;
-  }
-
-  // Windward-face separation (see crestBubbleH): adds the crest-edge bubble and
-  // the toe vortex of steep faces into env.rotorI / env.rotorTop. Walks the
-  // 1 m LiDAR ground along the flow in 5 m steps.
-  _faceSeparation(fe, fn, env) {
-    const n = this.n, cell = this.cell, half = this.windowM / 2, ds = 5;
-    const tan30 = Math.tan((30 * Math.PI) / 180), tan20 = Math.tan((20 * Math.PI) / 180);
-    const tanToe = Math.tan((TOE_MIN_DEG * Math.PI) / 180);
-    const at = (x, y, s) => this.groundAt(x + fe * s, y + fn * s);   // s > 0 downwind
-    // climb a face upwind (dir = -1) or downwind (dir = +1) from s0 while it stays
-    // steeper than 20°: returns its height, horizontal length and far end
-    const face = (x, y, s0, dir) => {
-      let s = s0, h0 = at(x, y, s0), h = h0;
-      for (let k = 0; k < 120; k++) {
-        const hn = at(x, y, s + dir * ds);
-        const rise = dir < 0 ? h - hn : hn - h;           // height gained going toward the top
-        if (rise / ds < tan20) break;
-        h = hn; s += dir * ds;
-      }
-      return { H: Math.abs(h - h0), len: Math.abs(s - s0), end: s, hEnd: h };
-    };
-    for (let j = 0; j < n; j++) {
-      for (let i = 0; i < n; i++) {
-        const k = j * n + i, x = -half + i * cell, y = -half + j * cell, g = this.groundAt(x, y);
-        let bestI = 0, bestTop = 0;
-        // --- crest-edge bubble: is there a steep windward face just upwind?
-        for (let s = -ds; s >= -300; s -= ds) {
-          const hHere = at(x, y, s + ds), hUp = at(x, y, s);
-          if ((hHere - hUp) / ds > tan30) {                 // ground drops away upwind: a windward face
-            const edge = hHere, f = face(x, y, s + ds, -1);
-            const H = edge - f.hEnd;
-            const xr = crestBubbleH(H / Math.max(f.len, ds));
-            const xh = -(s + ds) / Math.max(H, 1);           // distance behind the lip, in H
-            if (H > 8 && xr > 0 && xh <= 1.5 * xr && g - edge < 0.15 * H && edge - g < 0.5 * H) {
-              const shape = xh <= 0.5 * xr ? 1 : xh <= xr ? 1 - 0.5 * (xh - 0.5 * xr) / (0.5 * xr) : 0.5 * (1 - (xh - xr) / (0.5 * xr));
-              const inten = Math.max(0, shape) * Math.min(1, H / ROTOR_FULL_H) * 0.85;
-              if (inten > bestI) {
-                bestI = inten;
-                bestTop = edge + CREST_HEIGHT_H * H * Math.max(0.3, Math.sin(Math.PI * Math.min(1, xh / xr)) ** 0.5);
-              }
-            }
-            break;                                        // only the nearest face upwind counts
-          }
-        }
-        // --- toe vortex: is there a steep face rising just downwind?
-        for (let s = 0; s <= 200; s += ds) {
-          const h0 = at(x, y, s), h1 = at(x, y, s + ds);
-          if (h0 - g > 3) break;                          // ground already rising: not at a foot
-          if ((h1 - h0) / ds > tanToe) {
-            const f = face(x, y, s, +1), H = f.H;
-            const deg = (Math.atan(H / Math.max(f.len, ds)) * 180) / Math.PI;
-            const d = s / Math.max(H, 1);
-            if (H > 8 && deg > TOE_MIN_DEG && d < TOE_LENGTH_H) {
-              const inten = (1 - d / TOE_LENGTH_H) * Math.min(1, H / ROTOR_FULL_H) * 0.7;
-              if (inten > bestI) { bestI = inten; bestTop = h0 + TOE_HEIGHT_H * H * Math.sqrt(1 - d / TOE_LENGTH_H); }
-            }
-            break;
-          }
-        }
-        if (bestI > env.rotorI[k]) { env.rotorI[k] = bestI; env.rotorTop[k] = Math.max(bestTop, g + 3); }
-      }
-    }
   }
 
   // Rotor strength vs distance x behind the separating crest (in H), for a
@@ -649,6 +572,11 @@ export class SitePhysics {
     const n = this.n, cell = this.cell, half = this.windowM / 2;
     let bestClimb = -Infinity, ceiling = null, bestAlt = null;
     const r2 = radius * radius;
+    // the wind in the air a pilot soars in: rising faster than the wing's
+    // best sink (whether or not the wing can hold position there), clear of the
+    // surface and of rotor. Penetration is judged against this, not the wind
+    // right above the crest, where the speed-up is strongest.
+    const rising = wing.minSink * BEAT_SINK_FACTOR + (net.margin ?? USABLE_CLIMB), bandWind = [];
     for (let j = 0; j < n; j++) {
       for (let i = 0; i < n; i++) {
         const x = -half + i * cell, y = -half + j * cell;
@@ -656,6 +584,7 @@ export class SitePhysics {
         const k = j * n + i, b = field.base[k];
         for (let li = 0; li < net.length; li++) {
           const c = net[li][k];
+          if (Number.isFinite(c) && field.layers[li][k] > rising) bandWind.push(field.spd[li][k]);
           if (!(c > 0)) continue;
           const alt = b + field.agl[li];
           if (c > bestClimb) { bestClimb = c; bestAlt = alt; }
@@ -680,9 +609,21 @@ export class SitePhysics {
       soarable: ceiling !== null && bestClimb > 0,
       // what a pilot's hand-held anemometer reads on launch (~2 m); the site
       // strength bands come from readings like these
-      windTakeoff: this.windAt(field, 0, 0, ANEMOMETER_M),  // m/s
-      windAloft: this.windAt(field, 0, 0, 60),              // m/s, typical soaring height
+      windTakeoff: this.surfaceWind(field, 0, 0),           // m/s
+      windAloft: this.windAt(field, 0, 0, 60),              // m/s, 60 m above take-off
+      // median wind in the rising air (null if nothing rises fast enough)
+      windBand: bandWind.length ? bandWind.sort((a, b) => a - b)[bandWind.length >> 1] : null,
     };
+  }
+
+  // Wind a hand-held anemometer (~2 m) reads at (x,y). A simulated field
+  // (field.surfaceRef set) doesn't resolve the lowest metres: its first cells
+  // sit inside the wall model, so the reading comes from its first well-resolved
+  // height, brought down to 2 m with the log law.
+  surfaceWind(field, x, y) {
+    const d0 = field.surfaceRef;
+    if (!d0) return this.windAt(field, x, y, ANEMOMETER_M);
+    return this.windAt(field, x, y, d0) * windProfile(ANEMOMETER_M) / windProfile(d0);
   }
 
   // local wind speed at height d above the surface at (x,y)

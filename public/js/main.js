@@ -7,6 +7,7 @@ import { buildVegetation, buildWindsock, poseWindsock } from "./vegetation.js";
 import { AirViz } from "./airviz.js";
 import { seedRandom } from "./rng.js";
 import { SiteBrowser } from "./sitebrowser.js";
+import { CfdStore, cfdFields } from "./cfd.js";
 
 // ---------------------------------------------------------------- URL options
 //   ?site=<slug>&dir=<deg>&mph=<n>&lift=<m/s>&wing=<key>   deep link to a state
@@ -17,6 +18,13 @@ const PARAMS = new URLSearchParams(location.search);
 const TEST = PARAMS.has("test");
 if (TEST) seedRandom(Number(PARAMS.get("seed") || 1));
 const IMAGERY = !TEST && PARAMS.get("imagery") !== "off";
+// Precomputed simulated flow where a site has it (cfd/): the FluidX3D
+// large-eddy simulations in data/les/. ?cfd=off forces the fast built-in
+// model; test mode uses it unless ?cfd=on. ?flow=rans loads OpenFOAM results
+// from data/cfd/ instead, for comparison (not deployed; pack them there locally
+// with cfd/pack.mjs).
+const CFD = TEST ? PARAMS.get("cfd") === "on" : PARAMS.get("cfd") !== "off";
+const cfdStore = new CfdStore(PARAMS.get("flow") === "rans" ? "./data/cfd/" : "./data/les/");
 
 // ---------------------------------------------------------------- constants
 // Vertical exaggeration (visual only; all physics uses true metres). Trees and
@@ -378,8 +386,23 @@ function recompute() {
   const fe = -Math.sin(b), fn = -Math.cos(b);
   const spd = app.speedMph * MS_PER_MPH;
   const wing = WINGS[app.wing];
-  app.liftField = app.phys.computeLift(fe * spd, fn * spd);
-  app.turbField = app.phys.computeTurbulence(fe, fn, spd);
+  const slug = app.site.slug;
+  // One model throughout: the simulations, or (?cfd=off) the fast model. A
+  // simulated view never falls back to the fast model: missing data is an error.
+  if (CFD) {
+    const pair = cfdStore.pair(slug, app.dirDeg, () => { if (app.site?.slug === slug) TEST ? recompute() : scheduleRecompute(); });
+    if (!pair) {
+      const why = cfdStore.problem(slug, app.dirDeg);
+      if (why) showFlowError(why);
+      app.needsRecompute = false;           // still loading: keep the current view until it arrives
+      return;
+    }
+    ({ field: app.liftField, turb: app.turbField } = cfdFields(app.phys, pair, fe, fn, spd));
+    if (app.flowError) clearFlowError();
+  } else {
+    app.liftField = app.phys.computeLift(fe * spd, fn * spd);
+    app.turbField = app.phys.computeTurbulence(fe, fn, spd);
+  }
   app.fineWake = app.phys.obstacleWakes(fe, fn);
   app.net = app.phys.netClimb(app.liftField, wing, app.minLift, app.turbField);
   app.stats = app.phys.bandStats(app.liftField, wing, app.net);
@@ -396,6 +419,22 @@ function recompute() {
   app.needsRecompute = false;
 }
 function scheduleRecompute() { app.needsRecompute = true; }
+
+// the simulated airflow can't be shown: say so, and show no airflow at all
+function showFlowError(why) {
+  app.flowError = why;
+  app.liftField = app.turbField = app.net = app.stats = null;
+  if (app.viz) app.viz.field = null;
+  const el = document.getElementById("loading");
+  el.style.display = "flex"; el.style.opacity = "1"; el.classList.add("error");
+  document.getElementById("loadingText").textContent =
+    `Airflow simulation unavailable: ${why}. Reload to try again, or open the page with ?cfd=off for the fast built-in model.`;
+}
+function clearFlowError() {
+  app.flowError = null;
+  const el = document.getElementById("loading");
+  el.classList.remove("error"); el.style.opacity = "0"; el.style.display = "none";
+}
 
 // strongest tree / building turbulence within 150 m of take-off (0..1)
 function obstacleTurbNearTakeoff(spd) {
@@ -430,11 +469,11 @@ function updateStatus() {
   const st2 = app.stats;
   const wing = WINGS[app.wing];
   // What matters on the hill is the wind there, not the forecast: take-off
-  // wind includes the crest speed-up, and the wind at soaring height (~60 m)
-  // is stronger again (wind gradient). A wing only makes progress upwind if it
-  // can outfly the wind it is actually in.
+  // wind includes the crest speed-up, and the air the pilot soars in is faster
+  // again (wind gradient). A wing only makes progress upwind if it can outfly
+  // the wind in the lift band it is actually flying in.
   const toMph = st2 ? st2.windTakeoff/MS_PER_MPH : app.speedMph;
-  const aloft = st2 ? st2.windAloft : app.speedMph*MS_PER_MPH;
+  const aloft = st2 ? (st2.windBand ?? st2.windAloft) : app.speedMph*MS_PER_MPH;
   let cls, txt;
   if (app.speedMph < 3) { cls="warn"; txt="Calm — nothing to soar"; }
   else if (!on) { cls="bad"; txt=`Off wind (${cardinal(app.dirDeg)}) — this site won't work`; }
@@ -458,8 +497,11 @@ function updateStatus() {
   }
   if (st2) {
     bandEl.innerHTML += `<br><span class="dim">Wind on take-off ≈ ${Math.round(toMph)} mph (hand-held) · ` +
-      `${Math.round(aloft/MS_PER_MPH)} mph at 200 ft (gradient + crest speed-up)</span>`;
+      `${Math.round(aloft/MS_PER_MPH)} mph ${st2.windBand != null ? "in the lift band" : "at 200 ft"} (gradient + speed-up)</span>`;
   }
+  bandEl.innerHTML += app.liftField?.source === "cfd"
+    ? `<br><span class="dim">Airflow: ${app.liftField.les ? "FluidX3D LES" : "OpenFOAM"} simulation (${app.liftField.dirs.map((d) => Math.round(d) + "°").join(" / ")} blended)</span>`
+    : `<br><span class="dim">Airflow: fast model</span>`;
   // wakes shed by trees, hedges and buildings (LiDAR landcover) around take-off
   if (st2 && on && st2.obstacleTurb > 0.3) {
     bandEl.innerHTML += `<br><span style="color:var(--warn)">⚠ ${st2.obstacleTurb > 0.6 ? "Strong" : "Moderate"} ` +
@@ -551,7 +593,12 @@ async function loadSite(slug) {
   loading.style.display = "flex";
   document.getElementById("loadingText").textContent = "Loading terrain & LiDAR landcover…";
   const site = app.sites.find((s) => s.slug === slug);
-  const [terrain, lcRaster, lcObjects] = await Promise.all([
+  // default wind = centre of working arc, or the deep-linked one on first load
+  const dir0 = app.pendingDir ?? Math.round(arcCenter(site.windFrom[0], site.windFrom[1]));
+  app.pendingDir = null;
+  const [, terrain, lcRaster, lcObjects] = await Promise.all([
+    // a simulated site's first view is already the simulation: fetch it alongside
+    CFD ? cfdStore.ensure(slug, dir0) : null,
     fetch(`./data/terrain/${slug}.json`).then((r) => r.json()),
     loadLandcover(`./data/landcover/${slug}.png`, 800, 3200).catch(() => null),
     fetch(`./data/landcover/${slug}.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
@@ -586,8 +633,7 @@ async function loadSite(slug) {
   app.viz = new AirViz(siteGroup, { phys: app.phys, worldY, exag: EXAG, tracers: MOBILE ? 1300 : 2600 });
   Object.assign(app.viz.show, { tracers: app.show.tracers, band: app.show.band, rotor: app.show.rotor });
 
-  // default wind = centre of working arc
-  app.dirDeg = Math.round(arcCenter(site.windFrom[0], site.windFrom[1]));
+  app.dirDeg = dir0;
 
   // camera: from behind-and-above the pilot's shoulder... i.e. looking INTO the
   // wind at the face of the ridge, slightly from the side
@@ -629,10 +675,14 @@ async function loadSite(slug) {
   history.replaceState(null, "", u);
 
   drawDial();
+  app.flowError = null;
+  loading.classList.remove("error");
   recompute();
   fitViewToPanels();
-  loading.style.opacity = "0";
-  setTimeout(() => { if (token === app.loadToken) loading.style.display = "none"; }, TEST ? 0 : 500);
+  if (!app.flowError) {
+    loading.style.opacity = "0";
+    setTimeout(() => { if (token === app.loadToken && !app.flowError) loading.style.display = "none"; }, TEST ? 0 : 500);
+  }
   app.loading = false;
   if (IMAGERY) applySatellite(token);
 }
@@ -813,6 +863,7 @@ function animate() {
 // ---------------------------------------------------------------- boot
 async function boot() {
   const res = await fetch("./data/sites.json");
+  if (CFD) await cfdStore.loadIndex();
   const data = await res.json();
   app.sites = data.sites;
   app.browser = new SiteBrowser({ sites: app.sites, onSelect: (slug) => loadSite(slug), getWindDir: () => app.dirDeg });
@@ -823,6 +874,7 @@ async function boot() {
   });
   animate();
   const first = app.sites.find((s) => s.slug === PARAMS.get("site")) || app.sites[0];
+  if (PARAMS.has("dir")) app.pendingDir = ((Number(PARAMS.get("dir")) % 360) + 360) % 360;
   await loadSite(first.slug);
   // deep-link state
   let changed = false;
@@ -839,7 +891,7 @@ window.__view = {
   camera, controls, scene, app, recompute, renderer, loadSite,
   // resolves once no site load or recompute is pending
   whenIdle: () => new Promise((res) => {
-    const poll = () => (!app.loading && !app.needsRecompute ? res(true) : setTimeout(poll, 20));
+    const poll = () => (!app.loading && !app.needsRecompute && !cfdStore.pending().length ? res(true) : setTimeout(poll, 20));
     poll();
   }),
   // test mode: advance the animation by n fixed frames and render

@@ -4,6 +4,7 @@
 //   CAM=default|side|close|profile   camera preset
 //   MOBILE=1                         390×844 phone viewport with touch
 //   TEST=1                           deterministic test mode (no imagery)
+//   QUERY="cfd=on"                   extra URL options
 //   EVAL='js'                        run JS in the page before the screenshot
 import { chromium } from "@playwright/test";
 
@@ -20,6 +21,8 @@ page.on("console", (m) => {
 
 const q = new URLSearchParams({ site: slug, dir, mph });
 if (process.env.TEST) q.set("test", "");
+// extra URL options, e.g. QUERY="cfd=on"
+for (const [k, v] of new URLSearchParams(process.env.QUERY || "")) q.set(k, v);
 await page.goto(`${url}?${q}`);
 await page.waitForFunction(() => window.__view?.app?.viz && !window.__view.app.loading, null, { timeout: 90_000 });
 await page.evaluate(() => window.__view.whenIdle());
